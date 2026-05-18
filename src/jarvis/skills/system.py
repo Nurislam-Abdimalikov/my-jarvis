@@ -1,4 +1,5 @@
 """Скиллы управления системой macOS."""
+
 from __future__ import annotations
 
 import datetime
@@ -49,7 +50,9 @@ class SetBrightnessSkill(Skill):
     """Требует утилиту `brightness` (brew install brightness) или CLI инструмент."""
 
     name = "set_brightness"
-    description = "Установить яркость экрана. Требует утилиту `brightness` (brew install brightness)."
+    description = (
+        "Установить яркость экрана. Требует утилиту `brightness` (brew install brightness)."
+    )
     parameters = {
         "type": "object",
         "properties": {
@@ -94,4 +97,4 @@ class TakeScreenshotSkill(Skill):
         code, _, err = await run_shell("screencapture", "-x", str(path))
         if code != 0:
             return SkillResult(False, f"Не смог сделать скриншот: {err}")
-        return SkillResult(True, f"Сохранил скриншот на рабочий стол", {"path": str(path)})
+        return SkillResult(True, "Сохранил скриншот на рабочий стол", {"path": str(path)})

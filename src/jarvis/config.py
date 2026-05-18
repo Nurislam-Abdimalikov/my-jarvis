@@ -1,4 +1,5 @@
 """Загрузка конфига из config/config.yaml + .env."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,7 +9,6 @@ import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PROJECT_ROOT / "config" / "config.yaml"
 ENV_PATH = PROJECT_ROOT / ".env"
@@ -16,19 +16,20 @@ ENV_PATH = PROJECT_ROOT / ".env"
 
 # ---------- Pydantic-схемы для валидации ---------- #
 
+
 class WakeWordConfig(BaseModel):
     enabled: bool = False
-    engine: str = "openwakeword"          # openwakeword (только)
-    keyword: str = "hey_jarvis"           # имя openwakeword модели
-    threshold: float = 0.5                # порог срабатывания (0..1)
-    silence_threshold: float = 0.005      # RMS-уровень = тишина
-    silence_duration: float = 1.2         # сколько тишины подряд = конец фразы
-    initial_grace: float = 2.5            # сколько ждать пока юзер начнёт после wake
+    engine: str = "openwakeword"  # openwakeword (только)
+    keyword: str = "hey_jarvis"  # имя openwakeword модели
+    threshold: float = 0.5  # порог срабатывания (0..1)
+    silence_threshold: float = 0.005  # RMS-уровень = тишина
+    silence_duration: float = 1.2  # сколько тишины подряд = конец фразы
+    initial_grace: float = 2.5  # сколько ждать пока юзер начнёт после wake
     max_command_duration: float = 12.0
     cooldown_after_trigger: float = 1.5
-    debug_scores: bool = False            # печатать каждый score >= 0.1 для калибровки
-    min_consecutive_frames: int = 2       # сколько кадров подряд должно быть выше порога
-    pre_roll_ms: int = 600                # сохранить ~N мс аудио ДО wake (защита от срезанного начала)
+    debug_scores: bool = False  # печатать каждый score >= 0.1 для калибровки
+    min_consecutive_frames: int = 2  # сколько кадров подряд должно быть выше порога
+    pre_roll_ms: int = 600  # сохранить ~N мс аудио ДО wake (защита от срезанного начала)
 
 
 class PushToTalkConfig(BaseModel):
@@ -38,25 +39,25 @@ class PushToTalkConfig(BaseModel):
 
 class STTConfig(BaseModel):
     engine: str = "whisper"
-    model: str = "medium"                       # tiny|base|small|medium|large-v3
+    model: str = "medium"  # tiny|base|small|medium|large-v3
     device: str = "auto"
     compute_type: str = "int8"
     language: str = "ru"
     # Whisper initial_prompt — подсказывает модели словарь команд и имён приложений.
     # Пусто = используем дефолт из jarvis.core.assistant._default_whisper_prompt.
     initial_prompt: str = ""
-    beam_size: int = 5                          # 1=greedy (быстро) | 5=точно (медленнее)
+    beam_size: int = 5  # 1=greedy (быстро) | 5=точно (медленнее)
 
 
 class TTSConfig(BaseModel):
-    engine: str = "f5tts"                                # say | f5tts | elevenlabs
+    engine: str = "f5tts"  # say | f5tts | elevenlabs
     say: dict[str, Any] = Field(default_factory=dict)
     elevenlabs: dict[str, Any] = Field(default_factory=dict)
     f5tts: dict[str, Any] = Field(default_factory=dict)  # F5-TTS_RUSSIAN voice cloning
 
 
 class BrainConfig(BaseModel):
-    engine: str = "aihubmix"                              # aihubmix | mistral | gemini
+    engine: str = "aihubmix"  # aihubmix | mistral | gemini
     aihubmix: dict[str, Any] = Field(default_factory=dict)
     mistral: dict[str, Any] = Field(default_factory=dict)
     gemini: dict[str, Any] = Field(default_factory=dict)
@@ -99,13 +100,14 @@ class ReactionsConfig(BaseModel):
     Если enabled=true и pack_dir содержит файлы — Джарвис будет проигрывать
     реальный голос актёра вместо TTS на эти события.
     """
+
     enabled: bool = True
     pack_dir: str = "assets/sounds/voices/jarvis-remaster"
     fallback_dir: str = "assets/sounds/voices/jarvis-og"
-    play_on_wake: bool = True       # реакция "Слушаю, сэр" на wake word
-    play_on_ok: bool = True         # "Готово, сэр" после успешной команды
-    play_on_greet: bool = True      # приветствие при старте (по времени дня)
-    play_on_goodbye: bool = True    # "До свидания" при выходе
+    play_on_wake: bool = True  # реакция "Слушаю, сэр" на wake word
+    play_on_ok: bool = True  # "Готово, сэр" после успешной команды
+    play_on_greet: bool = True  # приветствие при старте (по времени дня)
+    play_on_goodbye: bool = True  # "До свидания" при выходе
 
 
 class Config(BaseModel):

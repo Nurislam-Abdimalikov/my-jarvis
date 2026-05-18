@@ -1,0 +1,13 @@
+# .gitleaksignore — список fingerprint-ов конкретных false-positive находок gitleaks.
+#
+# Формат строки:
+#   <file>:<rule-id>:<line>:<commit>
+#
+# Пример:
+#   docs/SETUP.md:generic-api-key:42:abcdef0
+#
+# Используй этот файл ТОЛЬКО когда regex-allowlist в .gitleaks.toml не подходит
+# (например, когда нужно исключить конкретный коммит или строку, но не весь файл).
+#
+# Чтобы получить fingerprint текущего срабатывания:
+#   gitleaks detect --report-format json | jq '.[].Fingerprint'

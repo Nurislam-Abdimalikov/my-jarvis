@@ -1,4 +1,5 @@
 """faster-whisper STT — локальное распознавание речи."""
+
 from __future__ import annotations
 
 import asyncio

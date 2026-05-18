@@ -4,19 +4,20 @@
 непрерывно тонким детектором (~2% CPU), при срабатывании запускает запись
 команды до момента тишины.
 """
+
 from __future__ import annotations
 
 import asyncio
 import queue
 import threading
 from collections import deque
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import numpy as np
 import sounddevice as sd
 from loguru import logger
 from openwakeword.model import Model
-
 
 # openwakeword работает на 16kHz, mono, int16, фрейм 1280 сэмплов = 80мс
 SAMPLE_RATE = 16_000
@@ -33,14 +34,14 @@ class WakeWordListener:
         threshold: float = 0.5,
         input_device: int | None = None,
         # VAD параметры (energy-based, без доп. библиотек)
-        silence_threshold: float = 0.005,    # RMS ниже этого = тишина
-        silence_duration: float = 1.2,        # сколько подряд тишины = конец фразы
-        initial_grace: float = 2.5,           # сколько ждать пока юзер начнёт говорить
-        max_command_duration: float = 12.0,   # потолок длины команды
+        silence_threshold: float = 0.005,  # RMS ниже этого = тишина
+        silence_duration: float = 1.2,  # сколько подряд тишины = конец фразы
+        initial_grace: float = 2.5,  # сколько ждать пока юзер начнёт говорить
+        max_command_duration: float = 12.0,  # потолок длины команды
         cooldown_after_trigger: float = 1.5,  # сколько игнорить wake word после срабатывания
-        debug_scores: bool = False,           # логировать каждый score >= 0.1
-        min_consecutive_frames: int = 2,      # сколько кадров подряд должно быть выше порога
-        pre_roll_ms: int = 600,               # сохранять последние N мс аудио ПЕРЕД триггером
+        debug_scores: bool = False,  # логировать каждый score >= 0.1
+        min_consecutive_frames: int = 2,  # сколько кадров подряд должно быть выше порога
+        pre_roll_ms: int = 600,  # сохранять последние N мс аудио ПЕРЕД триггером
     ) -> None:
         self.wakeword_name = wakeword_name
         self.threshold = threshold
@@ -61,9 +62,7 @@ class WakeWordListener:
         self._model = Model(wakeword_models=[wakeword_name], inference_framework="onnx")
         if wakeword_name not in self._model.models:
             available = list(self._model.models.keys())
-            raise ValueError(
-                f"Модель {wakeword_name} не загрузилась. Доступные: {available}"
-            )
+            raise ValueError(f"Модель {wakeword_name} не загрузилась. Доступные: {available}")
         logger.info("✅ openWakeWord готов")
 
     async def listen_and_capture(
@@ -206,7 +205,8 @@ class WakeWordListener:
                 if consecutive >= self.min_consecutive_frames:
                     logger.info(
                         "✨ Wake word triggered! score={:.3f} (consec={})",
-                        score, consecutive,
+                        score,
+                        consecutive,
                     )
                     # Сбросить состояние модели чтобы тот же звук не сработал ещё раз
                     self._model.reset()

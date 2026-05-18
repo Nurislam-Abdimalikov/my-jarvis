@@ -1,6 +1,6 @@
 """Системные промпты Jarvis-персоны."""
-from __future__ import annotations
 
+from __future__ import annotations
 
 SYSTEM_PROMPT_RU = """\
 Ты — Джарвис. Не «AI-ассистент», не «языковая модель». Джарвис из фильмов про

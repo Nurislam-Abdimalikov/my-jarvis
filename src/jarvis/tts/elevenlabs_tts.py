@@ -6,6 +6,7 @@
 - При ошибке/исчерпании лимита автоматически фолбэчит на macOS `say`.
 - Воспроизведение через `afplay` (системный плеер macOS — без доп. зависимостей).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -18,7 +19,6 @@ from loguru import logger
 
 from .base import BaseTTS
 from .say_tts import SayTTS
-
 
 # Кэш mp3 — переживает рестарты, экономит free-tier
 _CACHE_DIR = Path.home() / ".cache" / "jarvis" / "tts_elevenlabs"

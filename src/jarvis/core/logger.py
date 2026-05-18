@@ -1,4 +1,5 @@
 """Настройка логирования через loguru."""
+
 from __future__ import annotations
 
 import sys
@@ -6,7 +7,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from jarvis.config import LoggingConfig, PROJECT_ROOT
+from jarvis.config import PROJECT_ROOT, LoggingConfig
 
 
 def setup_logging(cfg: LoggingConfig) -> None:
@@ -15,7 +16,7 @@ def setup_logging(cfg: LoggingConfig) -> None:
         sys.stderr,
         level=cfg.level,
         format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | "
-               "<cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
     )
 
     log_path = Path(cfg.file)

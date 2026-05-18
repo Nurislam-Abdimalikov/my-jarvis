@@ -2,6 +2,7 @@
 
 Phase 1: push-to-talk — нажми и держи `space`, говори, отпусти.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,7 +13,6 @@ import numpy as np
 import sounddevice as sd
 from loguru import logger
 from pynput import keyboard
-
 
 _KEY_MAP: dict[str, Any] = {
     "space": keyboard.Key.space,
@@ -99,7 +99,7 @@ class Recorder:
             ):
                 try:
                     await asyncio.wait_for(release_future, timeout=max_duration)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning("Достигнут max_duration={}s, останавливаю запись", max_duration)
         finally:
             listener.stop()

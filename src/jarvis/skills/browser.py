@@ -1,4 +1,5 @@
 """Скиллы веб-браузера и поиска."""
+
 from __future__ import annotations
 
 import urllib.parse
@@ -12,9 +13,7 @@ class WebSearchSkill(Skill):
     description = "Найти что-либо в Google в браузере по умолчанию."
     parameters = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Поисковый запрос"}
-        },
+        "properties": {"query": {"type": "string", "description": "Поисковый запрос"}},
         "required": ["query"],
     }
 
@@ -29,9 +28,7 @@ class OpenURLSkill(Skill):
     description = "Открыть URL в браузере. Используй когда пользователь говорит 'открой сайт ...'."
     parameters = {
         "type": "object",
-        "properties": {
-            "url": {"type": "string", "description": "URL вида https://..."}
-        },
+        "properties": {"url": {"type": "string", "description": "URL вида https://..."}},
         "required": ["url"],
     }
 
@@ -47,9 +44,7 @@ class YouTubeSearchSkill(Skill):
     description = "Найти видео на YouTube."
     parameters = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Что искать на YouTube"}
-        },
+        "properties": {"query": {"type": "string", "description": "Что искать на YouTube"}},
         "required": ["query"],
     }
 

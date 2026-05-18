@@ -1,4 +1,5 @@
 """Скиллы работы с файлами и Spotlight."""
+
 from __future__ import annotations
 
 import os
@@ -33,9 +34,7 @@ class SpotlightSearchSkill(Skill):
     description = "Найти файлы через Spotlight (mdfind). Возвращает первые 10 результатов."
     parameters = {
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Что искать"}
-        },
+        "properties": {"query": {"type": "string", "description": "Что искать"}},
         "required": ["query"],
     }
 

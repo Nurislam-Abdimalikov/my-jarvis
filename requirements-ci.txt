@@ -1,0 +1,20 @@
+# Минимальный набор зависимостей для CI на ubuntu-latest.
+# НЕ включает macOS-only пакеты (pyobjc, sounddevice) и тяжёлые ML-пакеты,
+# которые не требуются для lint и базовых unit-тестов:
+#   - openwakeword, onnxruntime, faster-whisper, elevenlabs, scipy, scikit-learn,
+#     soundfile, sounddevice, pyobjc-*, pynput
+# Когда тесты потребуют этих пакетов — расширить точечно или ввести macOS job.
+#
+# ВАЖНО: при добавлении зависимости в requirements.txt оценить, нужна ли она в CI,
+# и обновить этот файл при необходимости.
+
+pyyaml>=6.0.1
+pydantic>=2.8
+python-dotenv>=1.0.1
+loguru>=0.7.2
+httpx>=0.27
+numpy>=1.26,<2.0
+openai>=1.50.0
+ruff>=0.6.9
+pytest>=8.3
+pytest-asyncio>=0.23

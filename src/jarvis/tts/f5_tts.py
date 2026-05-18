@@ -18,11 +18,11 @@ API использования:
     )
     await f5.speak("Здравствуйте, сэр.")
 """
+
 from __future__ import annotations
 
 import asyncio
 import hashlib
-import os
 from pathlib import Path
 from typing import Any
 
@@ -31,10 +31,9 @@ import soundfile as sf
 from huggingface_hub import hf_hub_download
 from loguru import logger
 
+from jarvis.tts._text_utils import preprocess_text, split_into_sentences
 from jarvis.tts.base import BaseTTS
 from jarvis.tts.say_tts import SayTTS
-
-from jarvis.tts._text_utils import preprocess_text, split_into_sentences
 
 _CACHE_DIR = Path.home() / ".cache" / "jarvis" / "tts_f5"
 
@@ -61,12 +60,12 @@ class F5TtsTTS(BaseTTS):
         cache_enabled: bool = True,
         fallback: BaseTTS | None = None,
         # Параметры синтеза
-        nfe_step: int = 32,            # шаги diffusion (16-64). 32 — оптимум скорость/качество
-        cfg_strength: float = 2.0,     # classifier-free guidance (1.5-3.0)
+        nfe_step: int = 32,  # шаги diffusion (16-64). 32 — оптимум скорость/качество
+        cfg_strength: float = 2.0,  # classifier-free guidance (1.5-3.0)
         sway_sampling_coef: float = -1.0,  # -1 = новый sampler (рекомендован), 0 = старый
-        speed: float = 1.0,            # темп речи
-        seed: int = -1,                # -1 = случайный
-        use_ruaccent: bool = True,     # автоматическая расстановка ударений
+        speed: float = 1.0,  # темп речи
+        seed: int = -1,  # -1 = случайный
+        use_ruaccent: bool = True,  # автоматическая расстановка ударений
     ) -> None:
         ref_path = Path(ref_file)
         if not ref_path.exists():
@@ -89,8 +88,8 @@ class F5TtsTTS(BaseTTS):
             "seed": seed,
         }
 
-        self._model: Any = None             # F5TTS instance (ленивая)
-        self._ruaccent: Any = None          # авто-ударения (опционально)
+        self._model: Any = None  # F5TTS instance (ленивая)
+        self._ruaccent: Any = None  # авто-ударения (опционально)
         self._use_ruaccent = use_ruaccent
 
         if cache_enabled:
@@ -145,7 +144,9 @@ class F5TtsTTS(BaseTTS):
 
         ckpt_rel = _HF_CKPTS.get(self.checkpoint)
         if ckpt_rel is None:
-            raise ValueError(f"Неизвестный чекпоинт: {self.checkpoint}. Доступные: {list(_HF_CKPTS)}")
+            raise ValueError(
+                f"Неизвестный чекпоинт: {self.checkpoint}. Доступные: {list(_HF_CKPTS)}"
+            )
 
         logger.info("⏳ Загружаю F5-TTS чекпоинт {} (~1.3 GB при первом разе)...", self.checkpoint)
         ckpt_path = hf_hub_download(_HF_REPO, ckpt_rel)
@@ -221,9 +222,7 @@ class F5TtsTTS(BaseTTS):
                 await self._play_wav(cached)
                 return
 
-        out_path = (
-            self._cache_path(gen_text) if self.cache_enabled else (_CACHE_DIR / "_temp.wav")
-        )
+        out_path = self._cache_path(gen_text) if self.cache_enabled else (_CACHE_DIR / "_temp.wav")
 
         try:
             await asyncio.get_running_loop().run_in_executor(
@@ -246,7 +245,7 @@ class F5TtsTTS(BaseTTS):
             gen_text=text,
             **self.synth_params,
             remove_silence=False,
-            file_wave=None,    # вернуть в память, сохраним сами
+            file_wave=None,  # вернуть в память, сохраним сами
             file_spec=None,
         )
 

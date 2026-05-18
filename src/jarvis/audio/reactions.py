@@ -15,6 +15,7 @@
   goodbye   — выход / "пока"             → off
   greet     — старт ассистента (по времени дня) → greet_morning/day/evening/night
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -23,7 +24,6 @@ from datetime import datetime
 from pathlib import Path
 
 from loguru import logger
-
 
 # Соответствие категория → префикс файла. Один префикс = много вариантов (file1.mp3, file2.mp3, ...).
 _CATEGORY_PREFIX: dict[str, str] = {

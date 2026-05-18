@@ -17,6 +17,7 @@ Config (config/skills.yaml):
 
 Если provider/model не заданы — берётся sane default (OpenAI gpt-4o-mini).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -29,7 +30,6 @@ from typing import Any, ClassVar
 from loguru import logger
 
 from .base import Skill, SkillResult
-
 
 # Дефолтные пресеты на случай если ключ есть, а конфиг скилла не задан.
 _PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
@@ -241,7 +241,10 @@ class AnalyzeScreenSkill(Skill):
             image_b64 = base64.b64encode(shot_path.read_bytes()).decode("ascii")
             logger.info(
                 "Vision: {} ({} KB) → {} ({})",
-                mode, len(image_b64) // 1024, self.model, self.provider,
+                mode,
+                len(image_b64) // 1024,
+                self.model,
+                self.provider,
             )
 
             answer = await self._ask_vision(question, image_b64)

@@ -1,4 +1,5 @@
 """Регистр всех скиллов и фабрика по умолчанию."""
+
 from __future__ import annotations
 
 import inspect
@@ -31,17 +32,32 @@ from .system import (
 )
 from .vision import AnalyzeScreenSkill
 
-
 # Все доступные скиллы. Порядок не важен.
 ALL_SKILL_CLASSES: list[type[Skill]] = [
-    GetTimeSkill, GetDateSkill, GetWeatherSkill,
-    OpenAppSkill, CloseAppSkill, SwitchAppSkill,
-    WebSearchSkill, OpenURLSkill, YouTubeSearchSkill, WikiSearchSkill,
-    SetVolumeSkill, GetVolumeSkill, SetBrightnessSkill,
-    LockScreenSkill, TakeScreenshotSkill,
-    PlayMusicSkill, PauseMusicSkill, NextTrackSkill, PrevTrackSkill, CurrentSongSkill,
-    CopyToClipboardSkill, ReadClipboardSkill,
-    OpenPathSkill, SpotlightSearchSkill,
+    GetTimeSkill,
+    GetDateSkill,
+    GetWeatherSkill,
+    OpenAppSkill,
+    CloseAppSkill,
+    SwitchAppSkill,
+    WebSearchSkill,
+    OpenURLSkill,
+    YouTubeSearchSkill,
+    WikiSearchSkill,
+    SetVolumeSkill,
+    GetVolumeSkill,
+    SetBrightnessSkill,
+    LockScreenSkill,
+    TakeScreenshotSkill,
+    PlayMusicSkill,
+    PauseMusicSkill,
+    NextTrackSkill,
+    PrevTrackSkill,
+    CurrentSongSkill,
+    CopyToClipboardSkill,
+    ReadClipboardSkill,
+    OpenPathSkill,
+    SpotlightSearchSkill,
     CreateNoteSkill,
     AnalyzeScreenSkill,
 ]
@@ -95,7 +111,7 @@ def build_default_registry(skills_yaml_path: Path | None = None) -> SkillRegistr
     overrides = _load_skills_yaml(skills_yaml_path) if skills_yaml_path else {}
 
     # Ключи в skills.yaml которые НЕ передаём в конструктор скилла
-    META_KEYS = {"enabled", "requires_confirmation"}
+    META_KEYS = {"enabled", "requires_confirmation"}  # noqa: N806
 
     registry = SkillRegistry()
     for cls in ALL_SKILL_CLASSES:
@@ -110,10 +126,7 @@ def build_default_registry(skills_yaml_path: Path | None = None) -> SkillRegistr
             accepted = {p for p in sig.parameters if p != "self"}
         except (TypeError, ValueError):
             accepted = set()
-        init_kwargs = {
-            k: v for k, v in cfg.items()
-            if k not in META_KEYS and k in accepted
-        }
+        init_kwargs = {k: v for k, v in cfg.items() if k not in META_KEYS and k in accepted}
 
         try:
             skill = cls(**init_kwargs) if init_kwargs else cls()

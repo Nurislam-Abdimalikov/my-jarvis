@@ -1,9 +1,9 @@
 """Скиллы управления приложениями macOS."""
+
 from __future__ import annotations
 
 from ._macos import run_applescript, run_shell
 from .base import Skill, SkillResult
-
 
 # Алиасы — чтобы LLM не парился над точным именем приложения.
 _APP_ALIASES: dict[str, str] = {
@@ -36,7 +36,9 @@ def _resolve_app(name: str) -> str:
 
 class OpenAppSkill(Skill):
     name = "open_app"
-    description = "Открыть приложение на macOS. Например: Spotify, Telegram, Chrome, Safari, VSCode."
+    description = (
+        "Открыть приложение на macOS. Например: Spotify, Telegram, Chrome, Safari, VSCode."
+    )
     parameters = {
         "type": "object",
         "properties": {
@@ -80,9 +82,7 @@ class SwitchAppSkill(Skill):
     description = "Переключиться на приложение (вынести его на передний план)."
     parameters = {
         "type": "object",
-        "properties": {
-            "app_name": {"type": "string", "description": "Имя приложения"}
-        },
+        "properties": {"app_name": {"type": "string", "description": "Имя приложения"}},
         "required": ["app_name"],
     }
 

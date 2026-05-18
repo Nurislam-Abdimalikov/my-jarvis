@@ -1,4 +1,5 @@
 """Базовый интерфейс для Speech-to-Text движков."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -16,4 +17,6 @@ class TranscriptionResult:
 
 class BaseSTT(ABC):
     @abstractmethod
-    async def transcribe(self, audio: np.ndarray, sample_rate: int = 16000) -> TranscriptionResult: ...
+    async def transcribe(
+        self, audio: np.ndarray, sample_rate: int = 16000
+    ) -> TranscriptionResult: ...

@@ -1,4 +1,5 @@
 """Базовый интерфейс для Text-to-Speech движков."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

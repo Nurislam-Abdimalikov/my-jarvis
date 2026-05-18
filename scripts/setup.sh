@@ -42,6 +42,8 @@ if [ ! -f ".env" ]; then
 else
     echo "✅ .env уже существует"
 fi
+chmod 600 .env
+echo "🔒 Права на .env установлены: 600"
 
 # --- 5. Папки для логов и моделей ---
 mkdir -p logs assets/wake_words assets/sounds assets/recordings
@@ -50,3 +52,4 @@ echo ""
 echo "✨ Готово!"
 echo "   Активируй venv:  source .venv/bin/activate"
 echo "   Запуск:          python -m jarvis"
+echo "💡 Установи pre-commit хуки: pip install pre-commit && pre-commit install"

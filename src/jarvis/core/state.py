@@ -1,4 +1,5 @@
 """Состояние диалога: история сообщений + метаданные сессии."""
+
 from __future__ import annotations
 
 from collections import deque
@@ -20,6 +21,7 @@ class Message:
 @dataclass
 class ConversationState:
     """Кольцевая история последних N сообщений."""
+
     max_messages: int = 20
     history: deque[Message] = field(default_factory=deque)
     session_started_at: datetime = field(default_factory=datetime.now)

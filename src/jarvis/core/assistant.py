@@ -1,10 +1,10 @@
 """Главный оркестратор. Склеивает audio → STT → brain → skills → TTS."""
+
 from __future__ import annotations
 
 import json
 import os
 import re
-from pathlib import Path
 
 from loguru import logger
 
@@ -22,14 +22,22 @@ from jarvis.stt.whisper_stt import WhisperSTT
 from jarvis.tts.base import BaseTTS
 from jarvis.tts.say_tts import SayTTS
 
-
 MAX_TOOL_ITERATIONS = 5  # защита от бесконечного цикла tool_use → result → tool_use → ...
 
 
 # Паттерны "Джарвис" в начале фразы (включая типичные ошибки Whisper: Джаррис/Джарвес/Jarvis/etc)
 _WAKE_PREFIXES = (
-    "джарвис", "джарис", "джаррис", "джарвес", "джервис", "джервес", "джайвис",
-    "jarvis", "jervis", "hey jarvis", "эй джарвис",
+    "джарвис",
+    "джарис",
+    "джаррис",
+    "джарвес",
+    "джервис",
+    "джервес",
+    "джайвис",
+    "jarvis",
+    "jervis",
+    "hey jarvis",
+    "эй джарвис",
 )
 
 
@@ -93,7 +101,7 @@ def _strip_wake_word_prefix(text: str) -> str:
     for prefix in _WAKE_PREFIXES:
         if lowered.startswith(prefix):
             # Отрезаем префикс (+ возможные знаки препинания / пробелы после)
-            rest = text.lstrip()[len(prefix):].lstrip(" ,.!?;:")
+            rest = text.lstrip()[len(prefix) :].lstrip(" ,.!?;:")
             return rest
     return text
 
@@ -107,9 +115,7 @@ class Assistant:
         self.stt: BaseSTT = self._build_stt()
         self.brain: BaseLLM = self._build_brain()
         self.tts: BaseTTS = self._build_tts()
-        self.skills: SkillRegistry = build_default_registry(
-            PROJECT_ROOT / "config" / "skills.yaml"
-        )
+        self.skills: SkillRegistry = build_default_registry(PROJECT_ROOT / "config" / "skills.yaml")
         self.wake_word: WakeWordListener | None = self._build_wake_word()
         self.reactions: VoiceReactions = self._build_reactions()
 
@@ -177,8 +183,7 @@ class Assistant:
                 ),
             )
         raise ValueError(
-            f"Неизвестный brain engine: {b.engine}. "
-            f"Доступны: aihubmix | mistral | gemini"
+            f"Неизвестный brain engine: {b.engine}. " f"Доступны: aihubmix | mistral | gemini"
         )
 
     def _build_reactions(self) -> VoiceReactions:
@@ -223,7 +228,8 @@ class Assistant:
 
             # voice_id из конфига или env (env имеет приоритет — удобно для экспериментов)
             voice_id = os.getenv("ELEVENLABS_VOICE_ID") or t.elevenlabs.get(
-                "voice_id", "nPczCjzI2devNBz1zQrb"  # Brian (по умолчанию)
+                "voice_id",
+                "nPczCjzI2devNBz1zQrb",  # Brian (по умолчанию)
             )
             return ElevenLabsTTS(
                 api_key=os.getenv("ELEVENLABS_API_KEY", ""),
@@ -266,8 +272,7 @@ class Assistant:
                 use_ruaccent=f.get("use_ruaccent", True),
             )
         raise ValueError(
-            f"Неизвестный TTS engine: {t.engine}. "
-            f"Доступны: say | f5tts | elevenlabs"
+            f"Неизвестный TTS engine: {t.engine}. " f"Доступны: say | f5tts | elevenlabs"
         )
 
     # ---------- main loop ---------- #
@@ -374,8 +379,11 @@ class Assistant:
                 return "Простите, я не понял."
 
             # LLM хочет вызвать tool(s) — выполняем
-            logger.info("🔧 Tool calls (iter {}): {}", iteration + 1,
-                        [tc.name for tc in response.tool_calls])
+            logger.info(
+                "🔧 Tool calls (iter {}): {}",
+                iteration + 1,
+                [tc.name for tc in response.tool_calls],
+            )
 
             # 1) Добавить assistant-сообщение с tool_calls в формате OpenAI
             messages.append(self._build_assistant_tool_message(response.text, response.tool_calls))
@@ -388,15 +396,18 @@ class Assistant:
                     "message": result.message,
                     "data": result.data,
                 }
-                logger.info("   → {} ({}): {}", tc.name,
-                            "✓" if result.success else "✗", result.message)
+                logger.info(
+                    "   → {} ({}): {}", tc.name, "✓" if result.success else "✗", result.message
+                )
                 if result.success and result.message:
                     last_tool_results.append(result.message)
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "content": json.dumps(tool_payload, ensure_ascii=False),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": json.dumps(tool_payload, ensure_ascii=False),
+                    }
+                )
 
         logger.warning("Превышен лимит итераций tool calling ({})", MAX_TOOL_ITERATIONS)
         return "Слишком много шагов. Попробуй переформулировать."

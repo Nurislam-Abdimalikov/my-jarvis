@@ -1,4 +1,5 @@
 """Транскрибирует actor_master.wav через Whisper — нужен для F5-TTS как ref_text."""
+
 from __future__ import annotations
 
 import sys
@@ -7,13 +8,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import asyncio
+
 import librosa
 
 from jarvis.stt.whisper_stt import WhisperSTT
 
 
 async def main() -> None:
-    audio_path = Path(__file__).resolve().parents[1] / "assets/sounds/voices/jarvis-clean/actor_master.wav"
+    audio_path = (
+        Path(__file__).resolve().parents[1] / "assets/sounds/voices/jarvis-clean/actor_master.wav"
+    )
     out_path = audio_path.with_suffix(".txt")
 
     audio, sr = librosa.load(audio_path, sr=16000, mono=True)

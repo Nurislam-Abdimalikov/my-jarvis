@@ -1,4 +1,5 @@
 """Voice Activity Detection через silero-vad. Реализация в Phase 2."""
+
 from __future__ import annotations
 
 import numpy as np

@@ -7,6 +7,7 @@
 XTTS-v2 даёт стабильнее клон когда подаёшь один длинный непрерывный wav
 вместо множества коротких фрагментов.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

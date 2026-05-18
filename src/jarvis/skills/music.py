@@ -1,4 +1,5 @@
 """Скиллы управления музыкой (Spotify / Music.app)."""
+
 from __future__ import annotations
 
 from ._macos import run_applescript
@@ -99,14 +100,14 @@ class CurrentSongSkill(Skill):
         app = _app_for(player)
         script = (
             f'tell application "{app}"\n'
-            f'  if it is running then\n'
-            f'    set t to name of current track\n'
-            f'    set a to artist of current track\n'
+            f"  if it is running then\n"
+            f"    set t to name of current track\n"
+            f"    set a to artist of current track\n"
             f'    return a & " — " & t\n'
-            f'  else\n'
+            f"  else\n"
             f'    return "not running"\n'
-            f'  end if\n'
-            f'end tell'
+            f"  end if\n"
+            f"end tell"
         )
         code, out, err = await run_applescript(script)
         if code != 0:

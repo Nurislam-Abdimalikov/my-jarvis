@@ -6,6 +6,7 @@
 - Google Gemini (через OpenAI-совместимый эндпоинт)
 - любой другой OpenAI-совместимый провайдер.
 """
+
 from __future__ import annotations
 
 from loguru import logger
@@ -93,9 +94,7 @@ class OpenAIBrain(BaseLLM):
         from openai import BadRequestError
 
         async def _create(token_param: str):
-            return await client.chat.completions.create(
-                **kwargs, **{token_param: self.max_tokens}
-            )
+            return await client.chat.completions.create(**kwargs, **{token_param: self.max_tokens})
 
         if self._token_param:
             response = await _create(self._token_param)
@@ -116,7 +115,7 @@ class OpenAIBrain(BaseLLM):
         text = (msg.content or "").strip()
 
         tool_calls: list[ToolCall] = []
-        for tc in (msg.tool_calls or []):
+        for tc in msg.tool_calls or []:
             import json
 
             try:

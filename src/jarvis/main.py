@@ -1,4 +1,5 @@
 """CLI запуск Jarvis."""
+
 from __future__ import annotations
 
 import asyncio

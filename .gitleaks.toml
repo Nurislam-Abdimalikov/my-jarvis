@@ -1,0 +1,44 @@
+title = "Jarvis gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aihubmix-key"
+description = "AIHubMix API key"
+regex = '''sk-[A-Za-z0-9]{32,}'''
+keywords = ["aihubmix", "AIHUBMIX_API_KEY"]
+
+[[rules]]
+id = "mistral-key"
+description = "Mistral API key"
+regex = '''[A-Za-z0-9]{32}'''
+keywords = ["mistral", "MISTRAL_API_KEY"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google API key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+keywords = ["google", "GOOGLE_API_KEY"]
+
+[[rules]]
+id = "elevenlabs-key"
+description = "ElevenLabs API key"
+regex = '''sk_[A-Za-z0-9]{32,}'''
+keywords = ["elevenlabs", "ELEVENLABS_API_KEY"]
+
+[allowlist]
+description = "Documentation placeholders and example values"
+regexes = [
+  '''sk-EXAMPLE[A-Za-z0-9\-]*''',
+  '''sk-\.\.\.EXAMPLE''',
+  '''<your-[a-z\-]+-key>''',
+  '''<your-key-here>''',
+  '''xxxxxxxx+''',
+]
+paths = [
+  '''\.env\.example$''',
+  '''docs/.*\.md$''',
+  '''README\.md$''',
+  '''\.kiro/.*\.md$''',
+]

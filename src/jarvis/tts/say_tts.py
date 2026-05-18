@@ -1,4 +1,5 @@
 """TTS через macOS встроенный `say`."""
+
 from __future__ import annotations
 
 import asyncio
@@ -37,4 +38,6 @@ class SayTTS(BaseTTS):
         )
         _, stderr = await proc.communicate()
         if proc.returncode != 0:
-            logger.error("say failed (code={}): {}", proc.returncode, stderr.decode(errors="ignore"))
+            logger.error(
+                "say failed (code={}): {}", proc.returncode, stderr.decode(errors="ignore")
+            )

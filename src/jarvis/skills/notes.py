@@ -1,4 +1,5 @@
 """Скиллы работы с Notes.app."""
+
 from __future__ import annotations
 
 from ._macos import run_applescript
