@@ -19,9 +19,6 @@ scikit-learn>=1.3
 # --- LLM (OpenAI-совместимый клиент работает с AIHubMix / Mistral / Gemini) ---
 openai>=1.50.0
 
-# --- TTS ---
-elevenlabs>=1.7.0
-
 # --- macOS интеграция ---
 pyobjc-core>=10.3
 pyobjc-framework-Cocoa>=10.3

@@ -11,10 +11,17 @@ from loguru import logger
 
 from .apps import CloseAppSkill, OpenAppSkill, SwitchAppSkill
 from .base import Skill, SkillResult
-from .browser import OpenURLSkill, WebSearchSkill, WikiSearchSkill, YouTubeSearchSkill
+from .browser import (
+    CloseBrowserTabSkill,
+    OpenURLSkill,
+    WebSearchSkill,
+    WikiSearchSkill,
+    YouTubeSearchSkill,
+)
 from .clipboard import CopyToClipboardSkill, ReadClipboardSkill
 from .files import OpenPathSkill, SpotlightSearchSkill
-from .info import GetDateSkill, GetTimeSkill, GetWeatherSkill
+from .info import GetDateSkill, GetTimeInCitySkill, GetTimeSkill, GetWeatherSkill
+from .memory import ForgetSkill, RecallSkill, RememberSkill
 from .music import (
     CurrentSongSkill,
     NextTrackSkill,
@@ -30,12 +37,14 @@ from .system import (
     SetVolumeSkill,
     TakeScreenshotSkill,
 )
+from .timer import CancelTimersSkill, SetTimerSkill
 from .vision import AnalyzeScreenSkill
 
 # Все доступные скиллы. Порядок не важен.
 ALL_SKILL_CLASSES: list[type[Skill]] = [
     GetTimeSkill,
     GetDateSkill,
+    GetTimeInCitySkill,
     GetWeatherSkill,
     OpenAppSkill,
     CloseAppSkill,
@@ -44,6 +53,7 @@ ALL_SKILL_CLASSES: list[type[Skill]] = [
     OpenURLSkill,
     YouTubeSearchSkill,
     WikiSearchSkill,
+    CloseBrowserTabSkill,
     SetVolumeSkill,
     GetVolumeSkill,
     SetBrightnessSkill,
@@ -60,6 +70,11 @@ ALL_SKILL_CLASSES: list[type[Skill]] = [
     SpotlightSearchSkill,
     CreateNoteSkill,
     AnalyzeScreenSkill,
+    SetTimerSkill,
+    CancelTimersSkill,
+    RememberSkill,
+    RecallSkill,
+    ForgetSkill,
 ]
 
 

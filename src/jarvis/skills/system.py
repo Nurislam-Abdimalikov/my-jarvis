@@ -64,7 +64,7 @@ class SetBrightnessSkill(Skill):
     async def execute(self, level: int) -> SkillResult:  # type: ignore[override]
         level = max(0, min(100, int(level)))
         # brightness принимает 0.0-1.0
-        code, _, err = await run_shell("brightness", f"{level/100:.2f}")
+        code, _, err = await run_shell("brightness", f"{level / 100:.2f}")
         if code == 0:
             return SkillResult(True, f"Яркость: {level}%")
         if "not found" in err.lower() or code == 127:

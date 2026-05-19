@@ -30,7 +30,7 @@ class WakeWordListener:
 
     def __init__(
         self,
-        wakeword_name: str = "hey_jarvis",
+        wakeword_name: str | list[str] = "hey_jarvis",
         threshold: float = 0.5,
         input_device: int | None = None,
         # VAD параметры (energy-based, без доп. библиотек)
@@ -42,8 +42,18 @@ class WakeWordListener:
         debug_scores: bool = False,  # логировать каждый score >= 0.1
         min_consecutive_frames: int = 2,  # сколько кадров подряд должно быть выше порога
         pre_roll_ms: int = 600,  # сохранять последние N мс аудио ПЕРЕД триггером
+        # Скользящее окно: триггер если МАКС score за последние window_frames
+        # фреймов >= threshold. Закрывает «дрожь» одиночных близких к порогу пиков
+        # (0.32 → 0.34 подряд) которые при пер-фрейм проверке пропускались.
+        # 0 = выключено (старое поведение).
+        window_frames: int = 6,
     ) -> None:
-        self.wakeword_name = wakeword_name
+        # Список моделей: одна или несколько. Любая срабатывание означает wake.
+        # Несколько моделей (`hey_jarvis` + `alexa` + `hey_mycroft`) даёт
+        # 2-3x больше шансов поймать твоё произношение «джарвис».
+        self.wakeword_names: list[str] = (
+            [wakeword_name] if isinstance(wakeword_name, str) else list(wakeword_name)
+        )
         self.threshold = threshold
         self.input_device = input_device
         self.silence_threshold = silence_threshold
@@ -57,17 +67,27 @@ class WakeWordListener:
         # Это защита от ситуации "юзер начал команду до конца слова Джарвис".
         self._pre_roll_frames = max(0, int(pre_roll_ms / 1000.0 / FRAME_DURATION))
         self._pre_roll: deque[np.ndarray] = deque(maxlen=self._pre_roll_frames)
+        # Кольцевой буфер последних N score'ов на каждую модель — для max-of-N окна.
+        # Если хотя бы один из последних `window_frames` score'ов >= threshold,
+        # триггер срабатывает. Это вытаскивает кейсы вида 0.32 → 0.34 → 0.30,
+        # где при пер-фрейм проверке порог 0.35 пропускал бы все три.
+        self._window_frames = max(1, window_frames) if window_frames > 0 else 1
+        self._score_windows: dict[str, deque[float]] = {
+            name: deque(maxlen=self._window_frames) for name in self.wakeword_names
+        }
 
-        logger.info("Загружаю openWakeWord модель: {}", wakeword_name)
-        self._model = Model(wakeword_models=[wakeword_name], inference_framework="onnx")
-        if wakeword_name not in self._model.models:
+        logger.info("Загружаю openWakeWord модели: {}", self.wakeword_names)
+        self._model = Model(wakeword_models=list(self.wakeword_names), inference_framework="onnx")
+        missing = [n for n in self.wakeword_names if n not in self._model.models]
+        if missing:
             available = list(self._model.models.keys())
-            raise ValueError(f"Модель {wakeword_name} не загрузилась. Доступные: {available}")
-        logger.info("✅ openWakeWord готов")
+            raise ValueError(f"Модели {missing} не загрузились. Доступные: {available}")
+        logger.info("✅ openWakeWord готов ({} моделей)", len(self.wakeword_names))
 
     async def listen_and_capture(
         self,
         on_wake: Callable[[], Awaitable[None]] | None = None,
+        force_trigger: asyncio.Event | None = None,
     ) -> np.ndarray:
         """Главный метод: блокирует пока не услышит wake word, потом записывает команду.
 
@@ -77,6 +97,9 @@ class WakeWordListener:
                 Удобно чтобы проиграть «Слушаю, сэр» голосом Джарвиса. После
                 выполнения callback мы дренируем очередь, чтобы записанный
                 из микрофона звук этого клипа не попал в команду.
+            force_trigger: внешний asyncio.Event. Если он set — мы немедленно
+                считаем wake-word сработавшим (без openwakeword). Используется
+                для глобального hotkey: нажал Cmd+Shift+J → начали запись.
 
         Возвращает float32 mono PCM аудио команды (без слова "Джарвис").
         Если ничего внятного не услышал — пустой массив.
@@ -110,33 +133,30 @@ class WakeWordListener:
         try:
             logger.info('🟢 Слушаю фоном. Скажи "Джарвис" чтобы активировать...')
 
-            # 1) Ждём wake word
+            # 1) Ждём wake word (или внешний force_trigger через hotkey).
             triggered = await loop.run_in_executor(
-                None, self._wait_for_wakeword, frame_q, stop_flag
+                None, self._wait_for_wakeword, frame_q, stop_flag, force_trigger
             )
             if not triggered:
                 return np.zeros(0, dtype=np.float32)
 
             logger.info("✨ Wake word услышан — слушаю команду...")
 
-            # 2) Если есть on_wake callback — играем реакцию ("Слушаю, сэр") и
-            # после её окончания дренируем очередь, чтобы клип не попал в запись.
-            # В этом случае pre-roll НЕ используем — юзер всё равно ждёт окончания клипа.
-            prepend_frames: list[np.ndarray] = []
+            # Pre-roll (~600 мс до wake) всегда добавляем в начало записи.
+            # Защита от ситуации когда юзер начал команду сразу после слова
+            # «Джарвис» и Whisper иначе получил бы только хвост («..умеешь»
+            # вместо «что ты умеешь»).
+            prepend_frames: list[np.ndarray] = list(self._pre_roll)
+
             if on_wake is not None:
+                # Параллельно играем "Слушаю, сэр" и продолжаем копить аудио в очереди —
+                # юзер мог уже начать говорить пока клип играет, мы его поймаем.
                 try:
                     await on_wake()
                 except Exception:  # noqa: BLE001
                     logger.exception("on_wake callback упал")
-                self._drain_queue(frame_q, frames_to_drop=frame_q.qsize())
-            else:
-                # Без on_wake — добавим pre-roll (~600 мс ДО wake) в начало записи.
-                # ВАЖНО: НЕ дренируем очередь после триггера. Иначе мы дропнем
-                # начало команды (например "от" из "открой") если юзер говорит
-                # без паузы после "Джарвис". Pre-roll + полная пост-wake запись
-                # вместе дают непрерывное аудио без дыр. Защита от двойного
-                # срабатывания обеспечивается через self._model.reset() выше.
-                prepend_frames = list(self._pre_roll)
+                # НЕ дренируем очередь: всё что юзер успел сказать пока играл
+                # клип — теперь в буфере. Это ровно то что нам нужно для STT.
 
             # 3) Записываем команду до тишины
             command_audio = await loop.run_in_executor(
@@ -158,22 +178,31 @@ class WakeWordListener:
         self,
         frame_q: queue.Queue[np.ndarray],
         stop_flag: threading.Event,
+        force_trigger: asyncio.Event | None = None,
     ) -> bool:
         """Гоняет openwakeword на каждом фрейме пока не сработает wake word.
 
-        Срабатывает только если score >= threshold в течение
-        `min_consecutive_frames` подряд — это режет ложняки от случайных
-        звуков. Дополнительно ведёт pre-roll буфер из последних ~600 мс
-        аудио, чтобы при срабатывании можно было «подмотать» начало команды.
+        Триггер: либо max-of-N окно >= threshold, либо внешний `force_trigger`
+        (например Cmd+Shift+J через GlobalHotkeyTrigger). force_trigger проверяется
+        на каждом фрейме — задержка не больше длины фрейма (~80 мс).
         """
         peak = 0.0  # пиковый score в текущем "окошке" — для диагностики
         peak_frames_left = 0  # сколько фреймов ещё считаем пик до сброса
-        consecutive = 0  # сколько подряд кадров было выше порога
-
-        # Сбрасываем pre-roll перед началом нового цикла
+        # Сбрасываем pre-roll и окна перед началом нового цикла
         self._pre_roll.clear()
+        for w in self._score_windows.values():
+            w.clear()
 
         while not stop_flag.is_set():
+            # Проверяем внешний триггер (hotkey) на каждом цикле — без ожидания фрейма.
+            if force_trigger is not None and force_trigger.is_set():
+                force_trigger.clear()
+                logger.info("✨ Hotkey trigger — слушаю команду...")
+                self._model.reset()
+                for w in self._score_windows.values():
+                    w.clear()
+                return True
+
             try:
                 frame = frame_q.get(timeout=0.5)
             except queue.Empty:
@@ -182,16 +211,39 @@ class WakeWordListener:
             # Накапливаем pre-roll (кольцевой буфер, лишнее само вытесняется)
             self._pre_roll.append(frame)
 
-            scores = self._model.predict(frame)
-            score = float(scores.get(self.wakeword_name, 0.0))
+            scores_dict = self._model.predict(frame)
 
-            # Диагностический режим — печатаем все заметные значения
-            if self.debug_scores and score >= 0.1:
-                logger.info("🔬 wake score: {:.3f} (run={})", score, consecutive)
+            # На каждом фрейме обновляем окна для всех моделей и считаем
+            # max-of-N для каждой. Триггер — у кого max-window >= threshold.
+            triggered_name: str | None = None
+            best_window_score = 0.0
+            best_window_name = ""
+            current_max_score = 0.0
+            for name in self.wakeword_names:
+                s = float(scores_dict.get(name, 0.0))
+                self._score_windows[name].append(s)
+                window_max = max(self._score_windows[name])
+                if window_max > best_window_score:
+                    best_window_score = window_max
+                    best_window_name = name
+                if s > current_max_score:
+                    current_max_score = s
+                if window_max >= self.threshold and triggered_name is None:
+                    triggered_name = name
+
+            # Диагностический режим — печатаем заметные текущие значения
+            if self.debug_scores and current_max_score >= 0.1:
+                # Покажем какая модель сейчас «горячее» и max за её окно
+                logger.info(
+                    "🔬 wake score: {:.3f} (window max: {:.3f} [{}])",
+                    current_max_score,
+                    best_window_score,
+                    best_window_name or self.wakeword_names[0],
+                )
 
             # Отслеживаем пик за последние ~2 секунды и логируем когда он спадёт
-            if score > peak:
-                peak = score
+            if current_max_score > peak:
+                peak = current_max_score
                 peak_frames_left = int(2.0 / FRAME_DURATION)
             elif peak_frames_left > 0:
                 peak_frames_left -= 1
@@ -199,22 +251,19 @@ class WakeWordListener:
                     logger.info("📊 пик score за окно: {:.3f} (порог {:.2f})", peak, self.threshold)
                     peak = 0.0
 
-            # Стабильность: триггер только когда N подряд кадров выше порога
-            if score >= self.threshold:
-                consecutive += 1
-                if consecutive >= self.min_consecutive_frames:
-                    logger.info(
-                        "✨ Wake word triggered! score={:.3f} (consec={})",
-                        score,
-                        consecutive,
-                    )
-                    # Сбросить состояние модели чтобы тот же звук не сработал ещё раз
-                    self._model.reset()
-                    # NB: НЕ дропаем буфер тут — _capture_until_silence сам решит
-                    # стартовать запись с pre-roll (чтобы не потерять начало команды)
-                    return True
-            else:
-                consecutive = 0
+            if triggered_name is not None:
+                logger.info(
+                    "✨ Wake word triggered! model={} window_max={:.3f}",
+                    triggered_name,
+                    best_window_score,
+                )
+                # Сбросить состояние модели чтобы тот же звук не сработал ещё раз
+                self._model.reset()
+                # Очистить окна — на следующем заходе считаем с нуля
+                for w in self._score_windows.values():
+                    w.clear()
+                # NB: НЕ дропаем pre-roll — _capture_until_silence его использует.
+                return True
 
         return False
 

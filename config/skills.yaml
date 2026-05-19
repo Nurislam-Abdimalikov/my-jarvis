@@ -7,6 +7,7 @@ skills:
   # --- info ---
   get_time:        { enabled: true }
   get_date:        { enabled: true }
+  get_time_in_city: { enabled: true }
   get_weather:     { enabled: true,  city_default: "Бишкек" }
 
   # --- apps ---
@@ -19,6 +20,7 @@ skills:
   open_url:        { enabled: true }
   youtube_search:  { enabled: true }
   wiki_search:     { enabled: true }
+  close_browser_tab: { enabled: true }
 
   # --- system ---
   set_volume:      { enabled: true }
@@ -48,6 +50,15 @@ skills:
   create_note:         { enabled: true }
   copy_to_clipboard:   { enabled: true }
   read_clipboard:      { enabled: true }
+
+  # --- timer ---
+  set_timer:           { enabled: true }
+  cancel_timers:       { enabled: true }
+
+  # --- long-term memory ---
+  remember:            { enabled: true }
+  recall:              { enabled: true }
+  forget:              { enabled: true }
 
   # --- files ---
   open_path:           { enabled: true }

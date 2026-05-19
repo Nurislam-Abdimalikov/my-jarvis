@@ -155,3 +155,94 @@ def _wmo_description(code: int) -> str:
         99: "сильная гроза с градом",
     }
     return table.get(code, "погода неизвестна")
+
+
+# ---- Мировые часы (через zoneinfo, без сети) ---- #
+
+# Алиасы города → IANA timezone. Не претендует на полноту — добавляем по
+# ходу пьесы. Главное чтобы покрыть популярные локации юзера.
+_CITY_TZ: dict[str, str] = {
+    # Русскоязычные написания
+    "москва": "Europe/Moscow",
+    "санкт-петербург": "Europe/Moscow",
+    "питер": "Europe/Moscow",
+    "бишкек": "Asia/Bishkek",
+    "ош": "Asia/Bishkek",
+    "алматы": "Asia/Almaty",
+    "ташкент": "Asia/Tashkent",
+    "тбилиси": "Asia/Tbilisi",
+    "минск": "Europe/Minsk",
+    "киев": "Europe/Kyiv",
+    "лондон": "Europe/London",
+    "париж": "Europe/Paris",
+    "берлин": "Europe/Berlin",
+    "нью-йорк": "America/New_York",
+    "ньюйорк": "America/New_York",
+    "нью йорк": "America/New_York",
+    "сан-франциско": "America/Los_Angeles",
+    "лос-анджелес": "America/Los_Angeles",
+    "лос анджелес": "America/Los_Angeles",
+    "лас-вегас": "America/Los_Angeles",
+    "токио": "Asia/Tokyo",
+    "пекин": "Asia/Shanghai",
+    "шанхай": "Asia/Shanghai",
+    "сеул": "Asia/Seoul",
+    "сингапур": "Asia/Singapore",
+    "дубай": "Asia/Dubai",
+    "стамбул": "Europe/Istanbul",
+    "анкара": "Europe/Istanbul",
+    "тель-авив": "Asia/Jerusalem",
+    "сидней": "Australia/Sydney",
+    # Английские написания (на случай если LLM передаст в латинице)
+    "moscow": "Europe/Moscow",
+    "bishkek": "Asia/Bishkek",
+    "new york": "America/New_York",
+    "london": "Europe/London",
+    "paris": "Europe/Paris",
+    "berlin": "Europe/Berlin",
+    "tokyo": "Asia/Tokyo",
+    "dubai": "Asia/Dubai",
+}
+
+
+class GetTimeInCitySkill(Skill):
+    name = "get_time_in_city"
+    description = (
+        "Узнать который час в другом городе или часовом поясе. "
+        "Используй когда пользователь спрашивает 'сколько времени в Нью-Йорке', "
+        "'который час в Лондоне', 'какое время сейчас в Токио'."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "city": {
+                "type": "string",
+                "description": "Город. Например: Нью-Йорк, Лондон, Токио, Дубай, Москва.",
+            }
+        },
+        "required": ["city"],
+    }
+
+    async def execute(self, city: str) -> SkillResult:  # type: ignore[override]
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+        key = city.strip().lower().replace("ё", "е")
+        tz_name = _CITY_TZ.get(key)
+        if tz_name is None:
+            # Может юзер сразу передал IANA-имя ("America/New_York")?
+            if "/" in city:
+                tz_name = city
+            else:
+                return SkillResult(False, f"Не знаю часовой пояс города «{city}».")
+        try:
+            tz = ZoneInfo(tz_name)
+        except ZoneInfoNotFoundError:
+            return SkillResult(False, f"Часовой пояс «{tz_name}» не найден в системе.")
+
+        now = datetime.now(tz)
+        text = now.strftime("%H:%M")
+        return SkillResult(
+            True,
+            f"В городе {city} сейчас {text}.",
+            {"time": text, "tz": tz_name, "iso": now.isoformat()},
+        )

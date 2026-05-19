@@ -49,12 +49,19 @@ def _default_whisper_prompt() -> str:
     качество распознавания подскакивает на десятки процентов на наших командах.
     """
     return (
-        "Привет, Джарвис. Открой Chrome, Telegram, Spotify, Safari, Visual Studio Code, "
+        "Привет, Джарвис. Что ты умеешь? Какие у тебя навыки? Какие есть скиллы? "
+        "Как тебя зовут? Кто ты? Расскажи про себя. "
+        "Открой Chrome, Telegram, Spotify, Safari, Visual Studio Code, "
         "Terminal, Finder, Notes, Mail, Calendar, WhatsApp, Slack. "
         "Закрой приложение, переключись на хром, открой ютуб, найди в гугле, "
-        "включи музыку, поставь на паузу, следующий трек, какая сейчас песня. "
+        "закрой вкладку гитхаб, закрой вкладку ютуб. "
+        "Включи музыку, поставь на паузу, следующий трек, какая сейчас песня. "
         "Какая погода в Бишкеке, который час, какая дата сегодня. "
+        "Сколько времени в Нью-Йорке, в Лондоне, в Токио. "
         "Сделай громче, тише, заблокируй экран, скриншот, запиши заметку. "
+        "Поставь таймер на пять минут, на час, отмени таймер, напомни через десять минут. "
+        "Запомни что встреча в три часа, что я просил запомнить, забудь это. "
+        "Что у меня на экране, опиши экран, посмотри сюда. "
         "Расскажи шутку, как тебя зовут, спасибо, до свидания."
     )
 
@@ -118,6 +125,16 @@ class Assistant:
         self.skills: SkillRegistry = build_default_registry(PROJECT_ROOT / "config" / "skills.yaml")
         self.wake_word: WakeWordListener | None = self._build_wake_word()
         self.reactions: VoiceReactions = self._build_reactions()
+
+        # Глобальный hotkey-триггер (Cmd+Shift+J) — работает параллельно с
+        # wake-word. Запускается в run() когда есть asyncio loop.
+        from jarvis.audio.hotkey import GlobalHotkeyTrigger
+
+        self.hotkey_trigger: GlobalHotkeyTrigger | None = (
+            GlobalHotkeyTrigger(self.config.push_to_talk.hotkey_combo)
+            if self.config.push_to_talk.enabled
+            else None
+        )
 
         self.system_prompt = get_system_prompt(self.config.language)
 
@@ -183,7 +200,7 @@ class Assistant:
                 ),
             )
         raise ValueError(
-            f"Неизвестный brain engine: {b.engine}. " f"Доступны: aihubmix | mistral | gemini"
+            f"Неизвестный brain engine: {b.engine}. Доступны: aihubmix | mistral | gemini"
         )
 
     def _build_reactions(self) -> VoiceReactions:
@@ -214,6 +231,7 @@ class Assistant:
             debug_scores=w.debug_scores,
             min_consecutive_frames=w.min_consecutive_frames,
             pre_roll_ms=w.pre_roll_ms,
+            window_frames=w.window_frames,
         )
 
     def _build_tts(self) -> BaseTTS:
@@ -223,57 +241,25 @@ class Assistant:
                 voice=t.say.get("voice", "Yuri"),
                 rate=t.say.get("rate", 200),
             )
-        if t.engine == "elevenlabs":
-            from jarvis.tts.elevenlabs_tts import ElevenLabsTTS
+        if t.engine == "xtts":
+            from jarvis.tts.xtts_tts import XttsTTS
 
-            # voice_id из конфига или env (env имеет приоритет — удобно для экспериментов)
-            voice_id = os.getenv("ELEVENLABS_VOICE_ID") or t.elevenlabs.get(
-                "voice_id",
-                "nPczCjzI2devNBz1zQrb",  # Brian (по умолчанию)
-            )
-            return ElevenLabsTTS(
-                api_key=os.getenv("ELEVENLABS_API_KEY", ""),
-                voice_id=voice_id,
-                model=t.elevenlabs.get("model", "eleven_multilingual_v2"),
-                stability=t.elevenlabs.get("stability", 0.5),
-                similarity_boost=t.elevenlabs.get("similarity_boost", 0.75),
-                cache_enabled=t.elevenlabs.get("cache_enabled", True),
-            )
-        if t.engine == "f5tts":
-            from jarvis.tts.f5_tts import F5TtsTTS
-
-            f = t.f5tts
-            ref_file = PROJECT_ROOT / f.get(
+            x = t.xtts or {}
+            ref_file = PROJECT_ROOT / x.get(
                 "ref_file", "assets/sounds/voices/jarvis-clean/actor_master.wav"
             )
-            # ref_text: либо из конфига напрямую, либо из файла рядом с ref_file
-            ref_text = f.get("ref_text")
-            if not ref_text:
-                txt_path = ref_file.with_suffix(".txt")
-                if txt_path.exists():
-                    ref_text = txt_path.read_text(encoding="utf-8").strip()
-                else:
-                    raise ValueError(
-                        f"F5-TTS требует ref_text. Положи .txt рядом с {ref_file.name} "
-                        f"или укажи в config.yaml → tts.f5tts.ref_text"
-                    )
-
-            return F5TtsTTS(
+            return XttsTTS(
                 ref_file=ref_file,
-                ref_text=ref_text,
-                checkpoint=f.get("checkpoint", "v2"),
-                device=f.get("device", "cpu"),
-                cache_enabled=f.get("cache_enabled", True),
-                nfe_step=f.get("nfe_step", 32),
-                cfg_strength=f.get("cfg_strength", 2.0),
-                sway_sampling_coef=f.get("sway_sampling_coef", -1.0),
-                speed=f.get("speed", 1.0),
-                seed=f.get("seed", -1),
-                use_ruaccent=f.get("use_ruaccent", True),
+                language=x.get("language", "ru"),
+                device=x.get("device", "auto"),
+                cache_enabled=x.get("cache_enabled", True),
+                speed=x.get("speed", 1.0),
+                temperature=x.get("temperature", 0.65),
+                top_k=x.get("top_k", 50),
+                top_p=x.get("top_p", 0.85),
+                repetition_penalty=x.get("repetition_penalty", 5.0),
             )
-        raise ValueError(
-            f"Неизвестный TTS engine: {t.engine}. " f"Доступны: say | f5tts | elevenlabs"
-        )
+        raise ValueError(f"Неизвестный TTS engine: {t.engine}. Доступны: say | xtts")
 
     # ---------- main loop ---------- #
 
@@ -285,6 +271,13 @@ class Assistant:
             import asyncio as _a
 
             await _a.get_running_loop().run_in_executor(None, prewarm)
+
+        # Запускаем глобальный hotkey-listener (Cmd+Shift+J) — работает
+        # параллельно с wake-word. Любой триггер активирует ассистента.
+        if self.hotkey_trigger is not None:
+            import asyncio as _a
+
+            self.hotkey_trigger.start(_a.get_running_loop())
 
         logger.info("🤖 {} готов. Ctrl+C чтобы выйти.", self.config.assistant_name)
         # Приветствие — сначала пробуем играть клип Джарвиса (по времени дня),
@@ -310,19 +303,34 @@ class Assistant:
                     await self.reactions.play("goodbye")
                 except Exception:  # noqa: BLE001
                     pass
+            # Освободить hotkey-listener
+            if self.hotkey_trigger is not None:
+                self.hotkey_trigger.stop()
 
     async def handle_one_turn(self) -> None:
-        """Один цикл: услышать → понять → выполнить инструменты → ответить голосом."""
-        # 1. Получить аудио. Wake-word имеет приоритет над push-to-talk если включён.
+        """Один цикл: услышать → понять → выполнить инструменты → ответить голосом.
+
+        Источников триггера два — оба работают параллельно:
+          - wake-word (модели openwakeword: hey_jarvis / alexa / ...);
+          - глобальный hotkey Cmd+Shift+J (если push_to_talk.enabled).
+        Что первое сработало — то и активирует запись команды.
+        """
         if self.wake_word is not None:
-            # На срабатывание wake word проигрываем "Слушаю, сэр" реальным голосом.
             on_wake = (
                 (lambda: self.reactions.play("wake"))
                 if self.config.reactions.play_on_wake
                 else None
             )
-            audio = await self.wake_word.listen_and_capture(on_wake=on_wake)
+            force_trigger = (
+                self.hotkey_trigger._event  # noqa: SLF001 — единственный путь
+                if self.hotkey_trigger is not None and self.hotkey_trigger.is_active
+                else None
+            )
+            audio = await self.wake_word.listen_and_capture(
+                on_wake=on_wake, force_trigger=force_trigger
+            )
         else:
+            # Wake-word выключен — fallback на push-to-talk (старое поведение).
             hotkey = self.config.push_to_talk.hotkey
             audio = await self.recorder.record_push_to_talk(hotkey=hotkey)
 
