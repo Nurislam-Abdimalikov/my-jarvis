@@ -61,3 +61,4 @@ assets/recordings/
 node_modules/
 .next/
 out/
+dist-electron/
