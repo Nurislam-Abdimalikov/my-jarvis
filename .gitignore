@@ -56,3 +56,8 @@ ehthumbs.db
 
 # --- User assets ---
 assets/recordings/
+
+# --- Node/Frontend ---
+node_modules/
+.next/
+out/
