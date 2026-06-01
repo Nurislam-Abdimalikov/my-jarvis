@@ -45,108 +45,41 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside
-      className="drag-region"
-      style={{
-        width: 'var(--sidebar-width)',
-        flexShrink: 0,
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '0 12px 16px',
-        gap: 2,
-      }}
-    >
-      {/* Header / Logo */}
-      <div style={{
-        height: 52,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 8px',
-        gap: 10,
-        flexShrink: 0,
-      }}>
-        {/* Jarvis avatar dot */}
-        <div style={{
-          width: 28,
-          height: 28,
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--accent), #a855f7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          fontWeight: 700,
-          color: '#fff',
-          boxShadow: '0 0 16px var(--accent-glow)',
-          flexShrink: 0,
-        }}>J</div>
-        <span style={{
-          fontWeight: 600,
-          fontSize: 14,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.01em',
-        }}>Jarvis</span>
-        {/* Live dot */}
-        <div className="animate-pulse-dot" style={{
-          marginLeft: 'auto',
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          background: 'var(--green)',
-        }} />
+    <aside className="drag-region w-[var(--width-sidebar)] shrink-0 flex flex-col bg-surface border-r border-border pb-4 px-3 gap-0.5">
+
+      {/* Logo */}
+      <div className="h-[52px] flex items-center gap-2.5 px-2 shrink-0">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0
+                        bg-gradient-to-br from-accent to-purple-500 shadow-[0_0_16px_var(--color-accent-glow)]">
+          J
+        </div>
+        <span className="font-semibold text-sm text-primary tracking-tight">Jarvis</span>
+        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-ok"
+             style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
       </div>
 
       {/* Nav */}
-      <nav className="no-drag" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <nav className="no-drag flex flex-col gap-0.5">
         {NAV.map(({ href, label, icon }) => {
           const active = pathname === href
           return (
             <Link
               key={href}
               href={href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-sm)',
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: active ? 500 : 400,
-                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                background: active ? 'var(--bg-active)' : 'transparent',
-                transition: 'all 0.15s ease',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => {
-                if (!active) {
-                  e.currentTarget.style.background = 'var(--bg-hover)'
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!active) {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }
-              }}
+              className={`
+                flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius-sm)]
+                text-[13px] font-medium no-underline transition-all duration-150
+                ${active
+                  ? 'bg-active text-primary'
+                  : 'text-secondary hover:bg-hover hover:text-primary'}
+              `}
             >
-              <span style={{
-                color: active ? 'var(--accent)' : 'currentColor',
-                display: 'flex',
-                flexShrink: 0,
-              }}>{icon}</span>
+              <span className={`flex shrink-0 ${active ? 'text-accent' : 'text-current'}`}>
+                {icon}
+              </span>
               {label}
               {active && (
-                <div style={{
-                  marginLeft: 'auto',
-                  width: 3,
-                  height: 14,
-                  borderRadius: 99,
-                  background: 'var(--accent)',
-                }} />
+                <div className="ml-auto w-[3px] h-3.5 rounded-full bg-accent" />
               )}
             </Link>
           )
@@ -154,15 +87,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="no-drag" style={{ marginTop: 'auto' }}>
-        <div style={{
-          padding: '10px 10px',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border)',
-          background: 'var(--bg-elevated)',
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Версия</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Jarvis v1.0.0</div>
+      <div className="no-drag mt-auto">
+        <div className="px-2.5 py-2.5 rounded-[var(--radius-sm)] border border-border bg-elevated">
+          <div className="text-[11px] text-muted mb-1">Версия</div>
+          <div className="text-xs text-secondary font-medium">Jarvis v1.0.0</div>
         </div>
       </div>
     </aside>
