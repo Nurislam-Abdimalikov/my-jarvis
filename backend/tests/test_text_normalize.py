@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import pytest
-
 from jarvis.tts._text_normalize import normalize_for_tts
 
 

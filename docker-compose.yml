@@ -1,0 +1,39 @@
+services:
+  # Backend Python Service (for containerized API deployment or background processing)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jarvis-backend
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - ~/.jarvis:/root/jarvis # Mount home config directory
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENV=production
+    ports:
+      - "8000:8000"
+    profiles:
+      - api
+
+  # Local LLM service via Ollama (offline operation fallback)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: jarvis-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Enable GPU acceleration on Linux (ignored on macOS Docker Desktop)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:

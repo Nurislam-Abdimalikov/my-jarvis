@@ -86,3 +86,30 @@ html, body {
   animation: shimmer 1.5s infinite;
   @apply rounded-[var(--radius-sm)];
 }
+
+/* ─── Themes ────────────────────────────────────────────────────────────────── */
+.theme-cyberpunk {
+  --color-base:          #0f050c;
+  --color-surface:       #1a0815;
+  --color-elevated:      #280b20;
+  --color-hover:         #3a102e;
+  --color-active:        #4a153b;
+  --color-accent:        #ff007f;
+  --color-accent-glow:   rgba(255, 0, 127, 0.30);
+  --color-accent-dim:    rgba(255, 0, 127, 0.15);
+  --color-border:        rgba(255, 0, 127, 0.12);
+  --color-border-strong: rgba(255, 0, 127, 0.24);
+}
+
+.theme-emerald {
+  --color-base:          #020c06;
+  --color-surface:       #05180c;
+  --color-elevated:      #092613;
+  --color-hover:         #0e3b1d;
+  --color-active:        #134e27;
+  --color-accent:        #10b981;
+  --color-accent-glow:   rgba(16, 185, 129, 0.30);
+  --color-accent-dim:    rgba(16, 185, 129, 0.15);
+  --color-border:        rgba(16, 185, 129, 0.12);
+  --color-border-strong: rgba(16, 185, 129, 0.24);
+}
