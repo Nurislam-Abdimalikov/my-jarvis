@@ -4,10 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import warnings
 
 from jarvis.config import load_config
 from jarvis.core.assistant import Assistant
 from jarvis.core.logger import setup_logging
+
+# torch при синтезе XTTS печатает безобидный UserWarning про resize выходного
+# тензора в stft (deprecation в будущих версиях PyTorch). На работу не влияет,
+# но засоряет консоль — глушим точечно по тексту, остальные warning'и остаются.
+warnings.filterwarnings(
+    "ignore",
+    message=r".*output with one or more elements was resized.*",
+    category=UserWarning,
+)
 
 
 def cli() -> None:

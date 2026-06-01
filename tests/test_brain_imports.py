@@ -39,9 +39,9 @@ def test_import_openai_llm_without_env(clean_env) -> None:
     клиента (`__init__`), не на этапе импорта.
     """
     module = importlib.import_module("jarvis.brain.openai_llm")
-    assert hasattr(
-        module, "OpenAIBrain"
-    ), "jarvis.brain.openai_llm должен экспортировать класс OpenAIBrain"
+    assert hasattr(module, "OpenAIBrain"), (
+        "jarvis.brain.openai_llm должен экспортировать класс OpenAIBrain"
+    )
 
 
 def test_import_main_module(clean_env) -> None:

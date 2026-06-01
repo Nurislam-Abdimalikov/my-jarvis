@@ -75,6 +75,11 @@ class WakeWordListener:
         self._score_windows: dict[str, deque[float]] = {
             name: deque(maxlen=self._window_frames) for name in self.wakeword_names
         }
+        # Счётчик подряд идущих кадров выше порога на каждую модель. Триггер
+        # только когда счётчик достигает min_consecutive_frames — это отсекает
+        # одиночные шумовые пики (хлопок, стук, щелчок), которые дают один
+        # высокий кадр, но не держатся как реальное слово «Джарвис».
+        self._consec_counts: dict[str, int] = dict.fromkeys(self.wakeword_names, 0)
 
         logger.info("Загружаю openWakeWord модели: {}", self.wakeword_names)
         self._model = Model(wakeword_models=list(self.wakeword_names), inference_framework="onnx")
@@ -174,6 +179,13 @@ class WakeWordListener:
 
     # ---- блокирующие методы, выполняются в executor ---- #
 
+    def _reset_score_state(self) -> None:
+        """Очистить скользящие окна score'ов и счётчики подряд идущих кадров."""
+        for w in self._score_windows.values():
+            w.clear()
+        for name in self._consec_counts:
+            self._consec_counts[name] = 0
+
     def _wait_for_wakeword(
         self,
         frame_q: queue.Queue[np.ndarray],
@@ -188,10 +200,9 @@ class WakeWordListener:
         """
         peak = 0.0  # пиковый score в текущем "окошке" — для диагностики
         peak_frames_left = 0  # сколько фреймов ещё считаем пик до сброса
-        # Сбрасываем pre-roll и окна перед началом нового цикла
+        # Сбрасываем pre-roll, окна и счётчики перед началом нового цикла
         self._pre_roll.clear()
-        for w in self._score_windows.values():
-            w.clear()
+        self._reset_score_state()
 
         while not stop_flag.is_set():
             # Проверяем внешний триггер (hotkey) на каждом цикле — без ожидания фрейма.
@@ -199,8 +210,7 @@ class WakeWordListener:
                 force_trigger.clear()
                 logger.info("✨ Hotkey trigger — слушаю команду...")
                 self._model.reset()
-                for w in self._score_windows.values():
-                    w.clear()
+                self._reset_score_state()
                 return True
 
             try:
@@ -213,8 +223,9 @@ class WakeWordListener:
 
             scores_dict = self._model.predict(frame)
 
-            # На каждом фрейме обновляем окна для всех моделей и считаем
-            # max-of-N для каждой. Триггер — у кого max-window >= threshold.
+            # На каждом фрейме обновляем окна для всех моделей (для диагностики)
+            # и считаем подряд идущие кадры выше порога. Триггер — у модели,
+            # чей счётчик первым достиг min_consecutive_frames.
             triggered_name: str | None = None
             best_window_score = 0.0
             best_window_name = ""
@@ -228,7 +239,17 @@ class WakeWordListener:
                     best_window_name = name
                 if s > current_max_score:
                     current_max_score = s
-                if window_max >= self.threshold and triggered_name is None:
+                # Считаем подряд идущие кадры выше порога. Сбрасываем счётчик
+                # как только score упал ниже — так одиночный шумовой пик
+                # (1 кадр) не дотянет до min_consecutive_frames.
+                if s >= self.threshold:
+                    self._consec_counts[name] += 1
+                else:
+                    self._consec_counts[name] = 0
+                if (
+                    self._consec_counts[name] >= self.min_consecutive_frames
+                    and triggered_name is None
+                ):
                     triggered_name = name
 
             # Диагностический режим — печатаем заметные текущие значения
@@ -259,9 +280,8 @@ class WakeWordListener:
                 )
                 # Сбросить состояние модели чтобы тот же звук не сработал ещё раз
                 self._model.reset()
-                # Очистить окна — на следующем заходе считаем с нуля
-                for w in self._score_windows.values():
-                    w.clear()
+                # Очистить окна и счётчики — на следующем заходе считаем с нуля
+                self._reset_score_state()
                 # NB: НЕ дропаем pre-roll — _capture_until_silence его использует.
                 return True
 
