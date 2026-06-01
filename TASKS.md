@@ -1,29 +1,25 @@
-# ✅ Tasks
+# 📋 Tasks Backlog — Jarvis
 
-Working backlog for Jarvis. Each task: checkbox, branch, date, short description.
-Phased product roadmap lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Доска задач и планов по развитию голосового ассистента Jarvis.
 
 ---
 
 ## 📋 TODO
-
-- [ ] `feat/custom-wakeword` — _planned_ — Train a custom "djarvis" openWakeWord model on the author's voice (~50 samples).
-- [ ] `feat/imessage-telegram` — _planned_ — Send messages via iMessage and Telegram URL scheme.
-- [ ] `feat/calendar-write` — _planned_ — Create Calendar.app events (read already works).
-- [ ] `feat/tray-autostart` — _planned_ — Menu-bar tray icon + LaunchAgent auto-start on login.
-- [ ] `feat/ollama-local-llm` — _planned_ — Local LLM via Ollama for fully offline operation.
-- [ ] `feat/interrupt` — _planned_ — Barge-in / "Stop, Jarvis" to cancel playback.
+- [ ] `feat/custom-wakeword` — Train a custom "djarvis" openWakeWord model on the author's voice (~50 samples).
+- [ ] `feat/imessage-telegram` — Send messages via iMessage and Telegram URL scheme.
+- [ ] `feat/calendar-write` — Create Calendar.app events (read already works).
+- [ ] `feat/tray-autostart` — Menu-bar tray icon + LaunchAgent auto-start on login.
+- [ ] `feat/ollama-local-llm` — Local LLM via Ollama for fully offline operation.
+- [ ] `feat/interrupt` — Barge-in / "Stop, Jarvis" to cancel playback.
 
 ---
 
 ## 🚧 IN PROGRESS
-
-- [ ] `chore/dx-tooling` — 2026-05-31 — Developer experience: Makefile, colored `check_env.sh`, CONTRIBUTING guide.
+- [ ] `feature/theme-switcher` — Добавление переключателя тем (Space Dark, Cyberpunk, Emerald) в интерфейс десктопного дашборда.
 
 ---
 
 ## ✅ DONE
-
 - [x] `chore/monorepo-consolidate` — 2026-06-02 — Consolidation of Electron + Next.js (Tailwind CSS v4) into `frontend/`, Python tests to `backend/` and repository cleanup.
 - [x] `feat/voice-loop` — 2026-05 — Core async voice loop: record → STT → LLM → TTS (`core/assistant.py`).
 - [x] `feat/wakeword` — 2026-05 — openWakeWord with 3 parallel models + sliding max-of-N window (`audio/wake_word.py`).
@@ -38,3 +34,10 @@ Phased product roadmap lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - [x] `feat/reactions` — 2026-05 — Actor voice clips on wake / greet / goodbye (`audio/reactions.py`).
 - [x] `chore/security-hardening` — 2026-05 — `.env` chmod 600, pre-commit + gitleaks, CI lint and secret-scan.
 - [x] `chore/audit-cleanup` — 2026-05 — Removed dead code (vad stub, unused configs) and stale docs.
+
+---
+
+## 💤 BACKLOG
+- [ ] `feat/home-assistant` — Интеграция с умным домом для управления освещением и устройствами.
+- [ ] `feat/voice-id` — Распознавание голоса владельца для ограничения доступа к системным командам.
+- [ ] `feat/llm-plugins` — Поддержка динамической загрузки сторонних плагинов/навыков из сети.

@@ -1,77 +1,113 @@
 # 🤖 Jarvis — Personal Voice Assistant for macOS
 
+<p align="center">
+  <img src="screenshots/banner.png" alt="Jarvis Banner" width="800" />
+</p>
+
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](#-license)
 [![Platform: macOS](https://img.shields.io/badge/platform-macOS%20(Apple%20Silicon)-lightgrey.svg)](#)
-[![CI](https://github.com/Nurislam-React-Developer/my-jarvis/actions/workflows/ci.yml/badge.svg)](https://github.com/Nurislam-React-Developer/my-jarvis/actions/workflows/ci.yml)
+[![CI](https://github.com/Nurislam-Abdimalikov/my-jarvis/actions/workflows/ci.yml/badge.svg)](https://github.com/Nurislam-Abdimalikov/my-jarvis/actions/workflows/ci.yml)
 
-A privacy-first voice assistant for macOS that listens in the background, wakes on "Jarvis",
-and replies in a cloned actor voice (XTTS-v2) while controlling your Mac.
+**Jarvis** — это приватный голосовой ассистент для macOS, который работает локально, активируется фразой "Джарвис", выполняет команды по управлению операционной системой и отвечает вам клонированным голосом (на базе технологии XTTS-v2). Проект разработан на базе архитектуры монорепозитория, объединяющего бэкенд на Python и десктопный клиент на Electron + Next.js.
 
 ---
 
-## ✨ Features
+## ✨ Возможности
 
-| Capability | What it does |
+- 🎙️ **Wake Word активация**: Локальное распознавание с помощью openWakeWord (три модели параллельно с фильтрацией пиков).
+- 🗣️ **Локальный STT**: Быстрый и точный перевод речи в текст на базе `faster-whisper`.
+- 🧠 **Умный мозг**: OpenAI-совместимый движок (Gemini, Mistral, AIHubMix) с полной поддержкой вызова системных функций (tool calling).
+- 🔊 **Клонирование голоса**: Озвучивание ответов голосом актера на базе XTTS-v2 с аппаратным ускорением Apple Silicon (MPS).
+- ⚙️ **33 системных навыка**: Управление приложениями, музыкой, браузером, системной громкостью, создание заметок и таймеров.
+- 🧠 **Долговременная память**: Хранение фактов о пользователе на базе SQLite с автоматическим поиском контекста.
+- 👁️ **Анализ экрана**: Описание содержимого экрана пользователя через мультимодальные модели (Vision).
+
+---
+
+## 📸 Интерфейс
+
+| Панель управления (Чат) | Доступные скиллы |
 | --- | --- |
-| 🎙️ Wake word | Three openWakeWord models in parallel (`hey_jarvis`, `alexa`, `hey_mycroft`) with a sliding max-of-N window; `⌘+⇧+J` hotkey fallback |
-| 🗣️ Speech-to-Text | Local `faster-whisper` (beam search 5), no audio leaves the machine |
-| 🧠 LLM brain | OpenAI-compatible client (Mistral / AIHubMix / Gemini) with function calling and a Jarvis persona |
-| 🔊 Text-to-Speech | XTTS-v2 voice cloning on MPS with sentence streaming, on-disk cache, and number/unit normalization; macOS `say` fallback |
-| 🎯 33 native skills | Apps, browser, system, music, notes, clipboard, files, vision, timers, long-term memory |
-| 🧠 Long-term memory | `remember` / `recall` / `forget` backed by SQLite |
-| 👁️ Vision | Describe the current screen via a multimodal LLM |
-| 🔐 Security | `.env` chmod 600, pre-commit + gitleaks, CI lint and secret-scan |
+| <img src="screenshots/chat_ui.png" alt="Chat UI" width="380" /> | <img src="screenshots/skills.png" alt="Skills" width="380" /> |
 
 ---
 
-## 🚀 Quick Start
+## 🧠 Архитектура и стек
 
-```bash
-./scripts/setup.sh                       # 1. system deps (brew, portaudio, ffmpeg) + venv
-source .venv/bin/activate                # 2. activate the virtualenv
-cp .env.example .env                     # 3. add ONE LLM key (Mistral / AIHubMix / Gemini)
-bash scripts/check_env.sh                # 4. verify environment
-python -m jarvis                         # 5. run
+Проект реализован в виде монорепозитория:
+
+```txt
+my-jarvis/
+├── backend/       # Python 3.11 бэкенд (голосовой движок, STT/TTS, интеграция с macOS)
+├── frontend/      # Electron + Next.js 16 (React, Tailwind CSS v4, IPC Bridge)
+├── docs/          # Подробные гайды (SETUP, ROADMAP, SECURITY)
+├── scripts/       # Скрипты развертывания и диагностики окружения
+└── docker-compose.yml
 ```
 
-First run downloads XTTS-v2 (~1.8 GB) and Whisper-small (~500 MB) once. Full guide: [`docs/SETUP.md`](docs/SETUP.md).
+- **Backend**: Python 3.11, loguru, pytest, ruff, SQLite.
+- **Frontend**: Electron, Next.js 16 (App Router), Tailwind CSS v4, Bun.
+- **CI/CD**: GitHub Actions (Ruff, pytest, ESLint, Next.js static build check).
 
 ---
 
-## 🧠 Tech Stack
+## 🚀 Быстрый запуск
 
-| Layer | Technology | Location |
-| --- | --- | --- |
-| Wake word | [openWakeWord](https://github.com/dscripka/openWakeWord) | `audio/wake_word.py` |
-| STT | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | `stt/whisper_stt.py` |
-| LLM | OpenAI-compatible (Mistral / AIHubMix / Gemini) | `brain/openai_llm.py` |
-| TTS | [Coqui XTTS-v2](https://github.com/coqui-ai/TTS) + macOS `say` | `tts/xtts_tts.py`, `tts/say_tts.py` |
-| Vision | OpenAI-compatible vision model | `skills/vision.py` |
-| macOS glue | AppleScript + screencapture + afplay | `skills/_macos.py` |
+### Требования
+- macOS (рекомендуется Apple Silicon M1/M2/M3 для ускорения моделей)
+- Установленные `brew`, `ffmpeg`, `portaudio`
+- Пакетный менеджер `Bun`
 
----
-
-## 🛣️ Roadmap
-
-Tracked in [`TASKS.md`](TASKS.md) (todo / in progress / done) and phased in [`docs/ROADMAP.md`](docs/ROADMAP.md).
-Version history lives in [`CHANGELOG.md`](CHANGELOG.md).
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome. See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) for how to add a skill,
-run the tests, and the commit message convention. In short:
-
+### Шаг 1. Настройка бэкенда
 ```bash
-make setup        # one-time environment setup
-make test         # run the test suite
-make lint         # ruff lint + format check
+make setup               # Создает .venv и ставит зависимости
+source .venv/bin/activate # Активирует виртуальное окружение
+cp .env.example .env     # Добавьте ваш API ключ (Mistral, Gemini или AIHubMix)
+make run                 # Запускает голосового ассистента в фоне
+```
+
+### Шаг 2. Запуск десктопного UI
+```bash
+cd frontend
+bun install              # Установка JS зависимостей
+bun run dev              # Запуск Next.js + Electron в режиме разработки
 ```
 
 ---
 
-## 📜 License
+## 🐳 Запуск в Docker (Ollama локальный режим)
 
-MIT — personal project. Author: Nurislam Abdimalikov, Kyrgyzstan.
+Для автономного запуска без облачных API можно запустить локальный сервер моделей Ollama:
+```bash
+docker-compose up -d     # Запускает Ollama сервер в фоне
+```
+После этого настройте в `config/config.yaml` бэкенд-движок на работу с локальным хостом Ollama.
+
+---
+
+## 🌐 Деплой веб-версии (Production)
+
+### Frontend (Vercel)
+Фронтенд Next.js полностью готов к деплою на **Vercel** как статическое приложение (Static Export):
+1. Установите Vercel CLI: `npm i -g vercel`
+2. Запустите `vercel` внутри папки `frontend/` и следуйте инструкциям.
+
+### Backend (Render / Railway)
+Python API-сервис бэкенда может быть развернут на Render или Railway с использованием предоставленного [Dockerfile](backend/Dockerfile).
+
+---
+
+## 🛣️ Дорожная карта (Roadmap)
+
+Подробный бэклог задач находится в [TASKS.md](TASKS.md).
+Основные направления развития:
+- [ ] Офлайн режим работы (локальный Whisper + Ollama + локальный TTS).
+- [ ] Голосовой барьер (Вмешательство/Barge-in): прерывание речи ассистента при произнесении новой команды.
+- [ ] Поддержка управления умным домом через Home Assistant.
+
+---
+
+## 📜 Лицензия
+
+Проект распространяется под лицензией MIT. Разработано Нурисламом Абдималиковым.
