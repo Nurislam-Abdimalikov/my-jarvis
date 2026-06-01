@@ -1,15 +1,42 @@
 {
   "name": "jarvis-app",
-  "module": "index.ts",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "Jarvis Desktop App — Electron + Next.js",
+  "main": "main.js",
   "private": true,
+  "scripts": {
+    "dev": "concurrently \"bun run ui:dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "ui:dev": "cd ui && bun run dev",
+    "ui:build": "cd ui && bun run build",
+    "electron": "electron .",
+    "build": "bun run ui:build && electron-builder",
+    "lint": "cd ui && bun run lint"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "concurrently": "^9.1.2",
+    "electron": "^36.3.1",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.3"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "electron": "^42.3.0"
+    "better-sqlite3": "^11.10.0",
+    "js-yaml": "^4.1.0"
+  },
+  "build": {
+    "appId": "com.jarvis.app",
+    "productName": "Jarvis",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/out/**"
+    ]
   }
 }
