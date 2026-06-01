@@ -27,8 +27,8 @@ test: ## Run the test suite
 	$(BIN)/pytest -q
 
 lint: ## Lint and format check (ruff)
-	$(BIN)/ruff check src/jarvis tests
-	$(BIN)/ruff format --check src/jarvis tests
+	$(BIN)/ruff check backend/jarvis tests
+	$(BIN)/ruff format --check backend/jarvis tests
 
 check: ## Run environment diagnostics
 	bash scripts/check_env.sh
