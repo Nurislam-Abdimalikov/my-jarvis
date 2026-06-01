@@ -1,4 +1,6 @@
 'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -43,6 +45,21 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const [theme, setTheme] = useState('default')
+
+  useEffect(() => {
+    const saved = localStorage.getItem('jarvis-theme') || 'default'
+    setTheme(saved)
+  }, [])
+
+  const changeTheme = (newTheme) => {
+    document.documentElement.classList.remove('theme-cyberpunk', 'theme-emerald')
+    if (newTheme !== 'default') {
+      document.documentElement.classList.add('theme-' + newTheme)
+    }
+    localStorage.setItem('jarvis-theme', newTheme)
+    setTheme(newTheme)
+  }
 
   return (
     <aside className="drag-region w-[var(--width-sidebar)] shrink-0 flex flex-col bg-surface border-r border-border pb-4 px-3 gap-0.5">
@@ -87,7 +104,29 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="no-drag mt-auto">
+      <div className="no-drag mt-auto flex flex-col gap-2">
+        {/* Theme selector */}
+        <div className="px-2.5 py-2 rounded-[var(--radius-sm)] border border-border bg-surface flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Тема</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => changeTheme('default')}
+              className={`w-3.5 h-3.5 rounded-full bg-indigo-500 border cursor-pointer transition-all duration-100 ${theme === 'default' ? 'border-primary scale-110 shadow-[0_0_6px_var(--color-accent)]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+              title="Space Dark"
+            />
+            <button
+              onClick={() => changeTheme('cyberpunk')}
+              className={`w-3.5 h-3.5 rounded-full bg-pink-500 border cursor-pointer transition-all duration-100 ${theme === 'cyberpunk' ? 'border-primary scale-110 shadow-[0_0_6px_#ff007f]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+              title="Cyberpunk"
+            />
+            <button
+              onClick={() => changeTheme('emerald')}
+              className={`w-3.5 h-3.5 rounded-full bg-emerald-500 border cursor-pointer transition-all duration-100 ${theme === 'emerald' ? 'border-primary scale-110 shadow-[0_0_6px_#10b981]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+              title="Emerald"
+            />
+          </div>
+        </div>
+
         <div className="px-2.5 py-2.5 rounded-[var(--radius-sm)] border border-border bg-elevated">
           <div className="text-[11px] text-muted mb-1">Версия</div>
           <div className="text-xs text-secondary font-medium">Jarvis v1.0.0</div>

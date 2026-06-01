@@ -9,6 +9,16 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ru" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{__html: `
+          (function() {
+            var theme = localStorage.getItem('jarvis-theme') || 'default';
+            if (theme !== 'default') {
+              document.documentElement.classList.add('theme-' + theme);
+            }
+          })()
+        `}} />
+      </head>
       <body className="flex h-screen w-screen overflow-hidden bg-base text-primary font-sans">
         <Sidebar />
         <main className="flex-1 overflow-hidden flex flex-col">
