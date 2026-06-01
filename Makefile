@@ -24,11 +24,11 @@ run: ## Run the assistant (python -m jarvis)
 	$(BIN)/python -m jarvis
 
 test: ## Run the test suite
-	$(BIN)/pytest -q
+	$(BIN)/pytest -q backend/tests
 
 lint: ## Lint and format check (ruff)
-	$(BIN)/ruff check backend/jarvis tests
-	$(BIN)/ruff format --check backend/jarvis tests
+	$(BIN)/ruff check backend/jarvis backend/tests
+	$(BIN)/ruff format --check backend/jarvis backend/tests
 
 check: ## Run environment diagnostics
 	bash scripts/check_env.sh

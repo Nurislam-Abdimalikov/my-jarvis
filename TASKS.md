@@ -24,6 +24,7 @@ Phased product roadmap lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## ✅ DONE
 
+- [x] `chore/monorepo-consolidate` — 2026-06-02 — Consolidation of Electron + Next.js (Tailwind CSS v4) into `frontend/`, Python tests to `backend/` and repository cleanup.
 - [x] `feat/voice-loop` — 2026-05 — Core async voice loop: record → STT → LLM → TTS (`core/assistant.py`).
 - [x] `feat/wakeword` — 2026-05 — openWakeWord with 3 parallel models + sliding max-of-N window (`audio/wake_word.py`).
 - [x] `feat/hotkey` — 2026-05 — Global `⌘+⇧+J` push-to-talk hotkey fallback (`audio/hotkey.py`).

@@ -19,7 +19,7 @@ where = ["backend"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 
 [tool.ruff]
