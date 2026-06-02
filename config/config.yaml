@@ -23,7 +23,7 @@ wake_word:
   # их срабатывание ложное). Одна целевая модель = меньше ложняка.
   keyword:
     - hey_jarvis
-  threshold: 0.30                   # max-of-N окно делает порог стабильнее
+  threshold: 0.24                   # max-of-N окно делает порог стабильнее
   min_consecutive_frames: 2         # ≥2 кадра (~160мс) подряд выше порога — режет одиночные шумовые пики
   pre_roll_ms: 1000                 # сохранять последние N мс аудио ДО триггера
   window_frames: 6                  # max за последние ~480 мс ≥ threshold = триггер
@@ -45,7 +45,7 @@ stt:
   model: small                      # tiny | base | small (быстро) | medium (точнее, но +1 ГБ и +1.5 сек/фраза) | large-v3
   device: auto                      # auto | cpu | mps | cuda
   compute_type: int8                # int8 | float16 | float32
-  language: ru                      # ru | en | auto
+  language: auto                    # ru | en | auto
   initial_prompt: ""                # пусто = словарь по умолчанию (см. assistant.py)
   beam_size: 5                      # 1=greedy (быстро) | 5=точнее (рекомендуется на small)
 

@@ -37,14 +37,14 @@ skills:
   current_song:    { enabled: true }
 
   # --- messages ---
-  send_telegram:   { enabled: false, requires_confirmation: true }
-  send_imessage:   { enabled: false, requires_confirmation: true }
+  send_telegram:   { enabled: true, requires_confirmation: true }
+  send_imessage:   { enabled: true, requires_confirmation: true }
   read_unread_mail:{ enabled: false }
 
   # --- calendar ---
   get_today_events:    { enabled: true }
   get_tomorrow_events: { enabled: true }
-  create_event:        { enabled: false, requires_confirmation: true }
+  create_event:        { enabled: true, requires_confirmation: true }
 
   # --- notes / clipboard ---
   create_note:         { enabled: true }

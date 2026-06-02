@@ -277,7 +277,10 @@ class Assistant:
         if self.hotkey_trigger is not None:
             import asyncio as _a
 
-            self.hotkey_trigger.start(_a.get_running_loop())
+            try:
+                self.hotkey_trigger.start(_a.get_running_loop())
+            except Exception as e:
+                logger.warning("Не удалось запустить GlobalHotkeyTrigger: {}", e)
 
         logger.info("🤖 {} готов. Ctrl+C чтобы выйти.", self.config.assistant_name)
         # Приветствие — сначала пробуем играть клип Джарвиса (по времени дня),
@@ -316,23 +319,33 @@ class Assistant:
         Что первое сработало — то и активирует запись команды.
         """
         if self.wake_word is not None:
-            on_wake = (
-                (lambda: self.reactions.play("wake"))
-                if self.config.reactions.play_on_wake
-                else None
-            )
+            async def on_wake_cb() -> None:
+                from jarvis.tts.base import STOP_FLAG_PATH
+                try:
+                    STOP_FLAG_PATH.touch()
+                except Exception:
+                    pass
+                if self.config.reactions.play_on_wake:
+                    await self.reactions.play("wake")
+
             force_trigger = (
                 self.hotkey_trigger._event  # noqa: SLF001 — единственный путь
                 if self.hotkey_trigger is not None and self.hotkey_trigger.is_active
                 else None
             )
             audio = await self.wake_word.listen_and_capture(
-                on_wake=on_wake, force_trigger=force_trigger
+                on_wake=on_wake_cb, force_trigger=force_trigger
             )
         else:
             # Wake-word выключен — fallback на push-to-talk (старое поведение).
+            from jarvis.tts.base import STOP_FLAG_PATH
+            try:
+                STOP_FLAG_PATH.touch()
+            except Exception:
+                pass
             hotkey = self.config.push_to_talk.hotkey
             audio = await self.recorder.record_push_to_talk(hotkey=hotkey)
+
 
         if audio.size == 0:
             logger.warning("Пустая запись, пропускаю turn")
@@ -344,13 +357,13 @@ class Assistant:
         if not user_text:
             logger.warning("STT не распознал речь (или только wake word), пропускаю turn")
             return
-        print(f"🗣️  Ты:    {user_text}")
+        logger.info(f"🗣️ Ты: {user_text}")
 
         # 3. Brain + tool calling loop
         self.state.add("user", user_text)
         answer = await self._chat_with_tools(user_text)
         self.state.add("assistant", answer)
-        print(f"🤖 {self.config.assistant_name}: {answer}")
+        logger.info(f"🤖 Джарвис: {answer}")
 
         # 4. TTS
         await self.tts.speak(answer)

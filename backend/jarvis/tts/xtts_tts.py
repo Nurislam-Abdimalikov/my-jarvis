@@ -141,6 +141,12 @@ class XttsTTS(BaseTTS):
         if not text:
             return
 
+        from .base import check_and_clear_interrupt
+
+        if check_and_clear_interrupt():
+            logger.info("TTS xtts прерван до старта")
+            return
+
         # Стриминг: режем на предложения и синтезируем последовательно, но
         # начинаем играть первое как только готово. Параллельно синтезируем
         # следующее. На длинных ответах юзер слышит начало через ~1-2 сек
@@ -153,10 +159,13 @@ class XttsTTS(BaseTTS):
 
         # Очередь готовых wav-файлов для проигрывания.
         play_q: asyncio.Queue[Path | None] = asyncio.Queue()
+        interrupted = False
 
         async def producer() -> None:
             try:
                 for sent in sentences:
+                    if interrupted:
+                        break
                     if not sent.strip():
                         continue
                     path = await self._synthesize_or_cached(sent)
@@ -166,17 +175,35 @@ class XttsTTS(BaseTTS):
                 await play_q.put(None)  # сигнал конца
 
         async def consumer() -> None:
+            nonlocal interrupted
             while True:
                 item = await play_q.get()
                 if item is None:
                     return
-                await self._play_wav(item)
+                if interrupted:
+                    return
+                success = await self._play_wav(item)
+                if not success:
+                    interrupted = True
+                    return
 
         # Запускаем обоих параллельно — synth идёт впереди playback.
-        await asyncio.gather(producer(), consumer())
+        prod_task = asyncio.create_task(producer())
+        cons_task = asyncio.create_task(consumer())
+
+        await cons_task
+        if interrupted:
+            prod_task.cancel()
+        else:
+            await prod_task
 
     async def _speak_one(self, text: str) -> None:
         """Старый путь — синтезировать один кусок и сыграть."""
+        from .base import check_and_clear_interrupt
+
+        if check_and_clear_interrupt():
+            return
+
         if self.cache_enabled:
             cached = self._cache_path(text)
             if cached.exists() and cached.stat().st_size > 0:
@@ -192,6 +219,9 @@ class XttsTTS(BaseTTS):
         except Exception as e:  # noqa: BLE001
             logger.warning("XTTS упал ({}): {}. Фолбэк на say.", type(e).__name__, e)
             await self.fallback.speak(text)
+            return
+
+        if check_and_clear_interrupt():
             return
         await self._play_wav(out_path)
 
@@ -238,11 +268,28 @@ class XttsTTS(BaseTTS):
         )
 
     @staticmethod
-    async def _play_wav(path: Path) -> None:
+    async def _play_wav(path: Path) -> bool:
+        """Проигрывает wav. Возвращает False если был прерван, иначе True."""
+        from .base import check_and_clear_interrupt
+
+        if check_and_clear_interrupt():
+            return False
+
         proc = await asyncio.create_subprocess_exec(
             "afplay",
             str(path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        await proc.wait()
+
+        while proc.returncode is None:
+            if check_and_clear_interrupt():
+                logger.info("🔊 XTTS afplay прерван — останавливаю воспроизведение")
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+                return False
+            await asyncio.sleep(0.05)
+        return True
+

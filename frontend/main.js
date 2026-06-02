@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -10,8 +10,12 @@ const SKILLS_YAML_PATH = path.join(JARVIS_ROOT, 'config', 'skills.yaml')
 
 const isDev = process.env.NODE_ENV !== 'production'
 
+let win = null
+let tray = null
+app.isQuitting = false
+
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
@@ -31,18 +35,92 @@ function createWindow() {
   } else {
     win.loadFile(path.join(__dirname, 'out', 'index.html'))
   }
+
+  // Скрытие окна при закрытии вместо полного завершения
+  win.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault()
+      win.hide()
+    }
+    return false
+  })
+}
+
+function createTray() {
+  // Base64-иконка (микрофон или стильная буква J 16x16 в формате Template)
+  const iconBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEDzhZAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH6AYDEg8yJ40gugAAADFJREFUOMtjfGzD8J+BAsDEwMCgGBVTCkaKoFExioExbNQMxsCgl4xRwygGDFUwigFDAACL2AElM4N1pAAAAABJRU5ErkJggg=='
+  const trayIcon = nativeImage.createFromDataURL(iconBase64)
+  trayIcon.setTemplateImage(true) // Авто-смена цвета иконки на macOS
+
+  tray = new Tray(trayIcon)
+  
+  const updateMenu = () => {
+    const isAutostart = app.getLoginItemSettings().openAtLogin
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Показать Jarvis',
+        click: () => {
+          if (win) win.show()
+        }
+      },
+      {
+        label: 'Запускать при старте системы',
+        type: 'checkbox',
+        checked: isAutostart,
+        click: (menuItem) => {
+          app.setLoginItemSettings({
+            openAtLogin: menuItem.checked,
+            path: app.getPath('exe'),
+            openAsHidden: true
+          })
+          updateMenu()
+        }
+      },
+      { type: 'separator' },
+      {
+        label: 'Выйти',
+        click: () => {
+          app.isQuitting = true
+          app.quit()
+        }
+      }
+    ])
+    tray.setContextMenu(contextMenu)
+  }
+
+  tray.setToolTip('Jarvis Assistant')
+  updateMenu()
+
+  tray.on('click', () => {
+    if (win) {
+      if (win.isVisible()) {
+        win.hide()
+      } else {
+        win.show()
+        win.focus()
+      }
+    }
+  })
 }
 
 app.whenReady().then(() => {
   createWindow()
+  createTray()
+  
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    else if (win) win.show()
   })
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // На macOS мы не выходим из приложения при закрытии всех окон,
+  // так как оно должно продолжать работать в фоне в трее.
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
 })
+
 
 // ─── IPC: Read Log ───────────────────────────────────────────────────────────
 ipcMain.handle('read-log', async (_, lines = 500) => {
@@ -134,3 +212,45 @@ ipcMain.handle('get-stats', async () => {
     return { today: 0, total: 0, topCommands: [] }
   }
 })
+
+// ─── IPC: Stop TTS ───────────────────────────────────────────────────────────
+ipcMain.handle('stop-tts', async () => {
+  try {
+    const stopFlagPath = path.join(JARVIS_ROOT, 'logs', 'stop.flag')
+    const logsDir = path.dirname(stopFlagPath)
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true })
+    }
+    fs.writeFileSync(stopFlagPath, '', 'utf-8')
+    return true
+  } catch (err) {
+    console.error('stop-tts error:', err)
+    return false
+  }
+})
+
+// ─── IPC: Auto-start status ──────────────────────────────────────────────────
+ipcMain.handle('get-autostart-status', async () => {
+  try {
+    const settings = app.getLoginItemSettings()
+    return settings.openAtLogin
+  } catch (err) {
+    console.error('get-autostart-status error:', err)
+    return false
+  }
+})
+
+ipcMain.handle('set-autostart-status', async (_, value) => {
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: value,
+      path: app.getPath('exe'),
+      openAsHidden: true
+    })
+    return true
+  } catch (err) {
+    console.error('set-autostart-status error:', err)
+    return false
+  }
+})
+

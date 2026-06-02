@@ -18,10 +18,12 @@ from .browser import (
     WikiSearchSkill,
     YouTubeSearchSkill,
 )
+from .calendar import CreateEventSkill, GetTodayEventsSkill, GetTomorrowEventsSkill
 from .clipboard import CopyToClipboardSkill, ReadClipboardSkill
 from .files import OpenPathSkill, SpotlightSearchSkill
 from .info import GetDateSkill, GetTimeInCitySkill, GetTimeSkill, GetWeatherSkill
 from .memory import ForgetSkill, RecallSkill, RememberSkill
+from .messaging import SendImessageSkill, SendTelegramSkill
 from .music import (
     CurrentSongSkill,
     NextTrackSkill,
@@ -42,6 +44,11 @@ from .vision import AnalyzeScreenSkill
 
 # Все доступные скиллы. Порядок не важен.
 ALL_SKILL_CLASSES: list[type[Skill]] = [
+    GetTodayEventsSkill,
+    GetTomorrowEventsSkill,
+    CreateEventSkill,
+    SendImessageSkill,
+    SendTelegramSkill,
     GetTimeSkill,
     GetDateSkill,
     GetTimeInCitySkill,

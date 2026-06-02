@@ -1,46 +1,11 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import PageHeader from '../components/PageHeader'
+import ChatView from '../components/ChatView'
+import LogTable from '../components/LogTable'
+import { parseLine, buildChatMessages } from '../utils/chatUtils'
 
 const REFRESH_INTERVAL = 5000
-
-function parseLine(raw) {
-  const m = raw.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\s*\|\s*(\w+)\s*\|\s*(.+?)\s*-\s*(.+)$/)
-  if (!m) return { raw, ts: '', level: 'INFO', module: '', msg: raw }
-  return { raw, ts: m[1], level: m[2].trim(), module: m[3].trim(), msg: m[4].trim() }
-}
-
-const LEVEL_CLASS = {
-  INFO:    'bg-elevated text-muted',
-  WARNING: 'bg-warn-dim text-warn',
-  ERROR:   'bg-danger-dim text-danger',
-  DEBUG:   'bg-elevated text-muted',
-}
-
-const ROW_BG = {
-  WARNING: 'bg-warn-dim/40',
-  ERROR:   'bg-danger-dim/40',
-}
-
-function LogBadge({ level }) {
-  return (
-    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 font-mono tracking-wide ${LEVEL_CLASS[level] || 'bg-elevated text-muted'}`}>
-      {level}
-    </span>
-  )
-}
-
-function MsgText({ msg }) {
-  if (msg.includes('📝 STT:')) {
-    const text = msg.replace('📝 STT:', '').trim()
-    return <span><span className="text-accent mr-1.5">📝</span><span className="text-primary font-medium">{text}</span></span>
-  }
-  if (msg.includes('Tool calls'))  return <span className="text-info">{msg}</span>
-  if (msg.includes('✨ Wake word')) return <span className="text-ok">{msg}</span>
-  if (msg.includes('→') && msg.includes('(✓)')) return <span className="text-ok">{msg}</span>
-  return <span>{msg}</span>
-}
-
 const FILTERS = ['Все', 'Команды', 'Ошибки', 'Wake Word']
 
 const MOCK = [
@@ -64,6 +29,7 @@ export default function HistoryPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState('Все')
   const [search, setSearch] = useState('')
+  const [showRawLogs, setShowRawLogs] = useState(false)
   const bottomRef = useRef(null)
 
   const load = useCallback(async (silent = false) => {
@@ -106,6 +72,21 @@ export default function HistoryPage() {
 
   const Actions = (
     <div className="flex gap-2">
+      {/* Toggle View Mode */}
+      <button
+        onClick={() => setShowRawLogs(!showRawLogs)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border cursor-pointer text-xs font-medium transition-all duration-150
+          ${showRawLogs 
+            ? 'border-accent bg-accent-dim text-accent' 
+            : 'border-border bg-elevated text-secondary hover:text-primary'}`}
+      >
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {showRawLogs ? 'Режим чата' : 'Логи разработчика'}
+      </button>
+
+      {/* Clear history */}
       <button
         onClick={handleClear}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-red-500/20
@@ -118,6 +99,7 @@ export default function HistoryPage() {
         Очистить историю
       </button>
 
+      {/* Refresh */}
       <button
         onClick={() => load(true)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-border
@@ -132,77 +114,56 @@ export default function HistoryPage() {
       </button>
     </div>
   )
- 
+
   return (
-    <div className="h-full flex flex-col" style={{ animation: 'fade-in 0.25s ease' }}>
+    <div className="h-full flex flex-col animate-fade-in">
       <PageHeader
         title="История"
-        subtitle={`${lines.length} записей · авто-обновление 5 сек`}
+        subtitle={showRawLogs ? `${lines.length} записей · авто-обновление 5 сек` : 'Интерактивный диалог с ассистентом'}
         action={Actions}
       />
 
-      {/* Toolbar */}
-      <div className="flex gap-2 mb-4 shrink-0 flex-wrap items-center">
-        {/* Search */}
-        <div className="flex-1 min-w-[200px] relative">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Поиск по логу..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-elevated border border-border rounded-[var(--radius-sm)]
-                       text-primary text-[13px] outline-none placeholder:text-muted
-                       focus:border-accent transition-colors duration-150"
-          />
-        </div>
+      {showRawLogs ? (
+        <>
+          {/* Toolbar */}
+          <div className="flex gap-2 mb-4 shrink-0 flex-wrap items-center">
+            {/* Search */}
+            <div className="flex-1 min-w-[200px] relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Поиск по логу..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-elevated border border-border rounded-[var(--radius-sm)]
+                           text-primary text-[13px] outline-none placeholder:text-muted
+                           focus:border-accent transition-colors duration-150"
+              />
+            </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-1">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-[var(--radius-sm)] border text-xs font-medium cursor-pointer transition-all duration-150
-                ${f === filter
-                  ? 'border-accent bg-accent-dim text-accent'
-                  : 'border-border bg-elevated text-secondary hover:text-primary'}`}
-            >{f}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Log rows */}
-      <div className="flex-1 overflow-auto flex flex-col gap-px">
-        {loading && Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="skeleton h-9" />
-        ))}
-
-        {!loading && filtered.length === 0 && (
-          <div className="flex items-center justify-center h-48 text-muted text-sm">
-            Записей не найдено
+            {/* Filter tabs */}
+            <div className="flex gap-1">
+              {FILTERS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 rounded-[var(--radius-sm)] border text-xs font-medium cursor-pointer transition-all duration-150
+                    ${f === filter
+                      ? 'border-accent bg-accent-dim text-accent'
+                      : 'border-border bg-elevated text-secondary hover:text-primary'}`}
+                >{f}</button>
+              ))}
+            </div>
           </div>
-        )}
 
-        {!loading && filtered.map((line, i) => (
-          <div
-            key={i}
-            className={`flex items-baseline gap-2.5 px-2.5 py-1.5 rounded-md transition-colors duration-100
-              hover:bg-elevated ${ROW_BG[line.level] ?? ''}`}
-          >
-            <span className="font-mono text-[11px] text-muted shrink-0 min-w-[80px]">
-              {line.ts ? line.ts.slice(11, 19) : ''}
-            </span>
-            <LogBadge level={line.level} />
-            <span className="font-mono text-[12px] text-secondary flex-1 overflow-hidden">
-              <MsgText msg={line.msg} />
-            </span>
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+          <LogTable filteredLines={filtered} loading={loading} bottomRef={bottomRef} />
+        </>
+      ) : (
+        /* Chat View Mode */
+        <ChatView messages={buildChatMessages(lines)} rawLines={lines} loading={loading} />
+      )}
     </div>
   )
 }
