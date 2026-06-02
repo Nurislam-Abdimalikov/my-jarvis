@@ -94,27 +94,51 @@ export default function HistoryPage() {
     return true
   })
 
-  const RefreshBtn = (
-    <button
-      onClick={() => load(true)}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-border
-                  bg-elevated text-xs font-medium cursor-pointer transition-colors duration-150
-                  ${refreshing ? 'text-accent' : 'text-secondary hover:text-primary'}`}
-    >
-      <svg className={`transition-transform duration-500 ${refreshing ? 'rotate-180' : ''}`}
-           width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-      {refreshing ? 'Обновление...' : 'Обновить'}
-    </button>
-  )
+  const handleClear = async () => {
+    if (typeof window !== 'undefined' && window.jarvis) {
+      const confirmed = window.confirm('Вы уверены, что хотите очистить всю историю команд?')
+      if (confirmed) {
+        await window.jarvis.clearLog()
+        load()
+      }
+    }
+  }
 
+  const Actions = (
+    <div className="flex gap-2">
+      <button
+        onClick={handleClear}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-red-500/20
+                    bg-red-500/10 text-red-400 text-xs font-medium cursor-pointer hover:bg-red-500/20
+                    transition-colors duration-150"
+      >
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Очистить историю
+      </button>
+
+      <button
+        onClick={() => load(true)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-border
+                    bg-elevated text-xs font-medium cursor-pointer transition-colors duration-150
+                    ${refreshing ? 'text-accent' : 'text-secondary hover:text-primary'}`}
+      >
+        <svg className={`transition-transform duration-500 ${refreshing ? 'rotate-180' : ''}`}
+             width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        {refreshing ? 'Обновление...' : 'Обновить'}
+      </button>
+    </div>
+  )
+ 
   return (
     <div className="h-full flex flex-col" style={{ animation: 'fade-in 0.25s ease' }}>
       <PageHeader
         title="История"
         subtitle={`${lines.length} записей · авто-обновление 5 сек`}
-        action={RefreshBtn}
+        action={Actions}
       />
 
       {/* Toolbar */}
