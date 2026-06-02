@@ -37,7 +37,8 @@
   ],
   "trustedDependencies": [
     "sharp",
-    "unrs-resolver"
+    "unrs-resolver",
+    "electron"
   ],
   "build": {
     "appId": "com.jarvis.app",

@@ -57,6 +57,17 @@ ipcMain.handle('read-log', async (_, lines = 500) => {
   }
 })
 
+// ─── IPC: Clear Log ──────────────────────────────────────────────────────────
+ipcMain.handle('clear-log', async () => {
+  try {
+    fs.writeFileSync(LOG_PATH, '', 'utf-8')
+    return true
+  } catch (err) {
+    console.error('clear-log error:', err)
+    return false
+  }
+})
+
 // ─── IPC: Read Memory DB ─────────────────────────────────────────────────────
 ipcMain.handle('read-memory', async () => {
   try {

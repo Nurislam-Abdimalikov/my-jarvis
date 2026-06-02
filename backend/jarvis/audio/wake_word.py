@@ -89,44 +89,26 @@ class WakeWordListener:
             raise ValueError(f"Модели {missing} не загрузились. Доступные: {available}")
         logger.info("✅ openWakeWord готов ({} моделей)", len(self.wakeword_names))
 
-    async def listen_and_capture(
-        self,
-        on_wake: Callable[[], Awaitable[None]] | None = None,
-        force_trigger: asyncio.Event | None = None,
-    ) -> np.ndarray:
-        """Главный метод: блокирует пока не услышит wake word, потом записывает команду.
+        self._stream = None
+        self._frame_q: queue.Queue[np.ndarray] = queue.Queue(maxsize=500)
+        self._stop_flag = threading.Event()
 
-        Args:
-            on_wake: опциональный async callback который вызывается СРАЗУ после
-                распознавания wake word — до того как мы начнём захватывать команду.
-                Удобно чтобы проиграть «Слушаю, сэр» голосом Джарвиса. После
-                выполнения callback мы дренируем очередь, чтобы записанный
-                из микрофона звук этого клипа не попал в команду.
-            force_trigger: внешний asyncio.Event. Если он set — мы немедленно
-                считаем wake-word сработавшим (без openwakeword). Используется
-                для глобального hotkey: нажал Cmd+Shift+J → начали запись.
-
-        Возвращает float32 mono PCM аудио команды (без слова "Джарвис").
-        Если ничего внятного не услышал — пустой массив.
-        """
-        loop = asyncio.get_running_loop()
-        # Очередь сырых int16 фреймов от sd-callback в наш asyncio-таск.
-        frame_q: queue.Queue[np.ndarray] = queue.Queue(maxsize=200)
-        stop_flag = threading.Event()
+    def _ensure_stream(self) -> None:
+        """Создать и запустить InputStream один раз."""
+        if self._stream is not None:
+            return
 
         def audio_cb(indata: np.ndarray, _frames: int, _time: Any, status: Any) -> None:
             if status:
                 logger.debug("sounddevice status: {}", status)
-            # indata: (FRAME_SIZE, 1) float32 в [-1, 1]. Конвертим в int16 для модели.
             mono = indata[:, 0]
             int16 = (np.clip(mono, -1.0, 1.0) * 32767).astype(np.int16)
             try:
-                frame_q.put_nowait(int16)
+                self._frame_q.put_nowait(int16)
             except queue.Full:
-                # Пропускаем если очередь забилась — лучше потерять кадр чем заблокировать поток.
                 pass
 
-        stream = sd.InputStream(
+        self._stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
             channels=1,
             dtype="float32",
@@ -134,13 +116,29 @@ class WakeWordListener:
             callback=audio_cb,
             device=self.input_device,
         )
-        stream.start()
+        self._stream.start()
+
+    async def listen_and_capture(
+        self,
+        on_wake: Callable[[], Awaitable[None]] | None = None,
+        force_trigger: asyncio.Event | None = None,
+    ) -> np.ndarray:
+        """Главный метод: блокирует пока не услышит wake word, потом записывает команду.
+
+        Использует постоянно открытый поток ввода для стабильности CoreAudio на macOS.
+        """
+        loop = asyncio.get_running_loop()
+        self._ensure_stream()
+
+        # Полностью очищаем очередь от всех старых фреймов (например, записанных во время TTS)
+        self._drain_queue(self._frame_q)
+
         try:
             logger.info('🟢 Слушаю фоном. Скажи "Джарвис" чтобы активировать...')
 
             # 1) Ждём wake word (или внешний force_trigger через hotkey).
             triggered = await loop.run_in_executor(
-                None, self._wait_for_wakeword, frame_q, stop_flag, force_trigger
+                None, self._wait_for_wakeword, self._frame_q, self._stop_flag, force_trigger
             )
             if not triggered:
                 return np.zeros(0, dtype=np.float32)
@@ -148,34 +146,26 @@ class WakeWordListener:
             logger.info("✨ Wake word услышан — слушаю команду...")
 
             # Pre-roll (~600 мс до wake) всегда добавляем в начало записи.
-            # Защита от ситуации когда юзер начал команду сразу после слова
-            # «Джарвис» и Whisper иначе получил бы только хвост («..умеешь»
-            # вместо «что ты умеешь»).
             prepend_frames: list[np.ndarray] = list(self._pre_roll)
 
             if on_wake is not None:
-                # Параллельно играем "Слушаю, сэр" и продолжаем копить аудио в очереди —
-                # юзер мог уже начать говорить пока клип играет, мы его поймаем.
                 try:
                     await on_wake()
                 except Exception:  # noqa: BLE001
                     logger.exception("on_wake callback упал")
-                # НЕ дренируем очередь: всё что юзер успел сказать пока играл
-                # клип — теперь в буфере. Это ровно то что нам нужно для STT.
 
             # 3) Записываем команду до тишины
             command_audio = await loop.run_in_executor(
                 None,
                 self._capture_until_silence,
-                frame_q,
-                stop_flag,
+                self._frame_q,
+                self._stop_flag,
                 prepend_frames,
             )
             return command_audio
-        finally:
-            stop_flag.set()
-            stream.stop()
-            stream.close()
+        except Exception:
+            logger.exception("Ошибка в listen_and_capture")
+            return np.zeros(0, dtype=np.float32)
 
     # ---- блокирующие методы, выполняются в executor ---- #
 
@@ -352,12 +342,10 @@ class WakeWordListener:
         return audio
 
     @staticmethod
-    def _drain_queue(q: queue.Queue[np.ndarray], frames_to_drop: int = 0) -> None:
-        """Сбросить очередь (опционально пропустить N фреймов как "cooldown")."""
-        dropped = 0
-        while dropped < frames_to_drop:
+    def _drain_queue(q: queue.Queue[np.ndarray]) -> None:
+        """Полностью очистить очередь."""
+        while not q.empty():
             try:
                 q.get_nowait()
-                dropped += 1
             except queue.Empty:
-                return
+                break
