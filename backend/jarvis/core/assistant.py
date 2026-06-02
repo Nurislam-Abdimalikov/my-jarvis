@@ -344,13 +344,13 @@ class Assistant:
         if not user_text:
             logger.warning("STT не распознал речь (или только wake word), пропускаю turn")
             return
-        print(f"🗣️  Ты:    {user_text}")
+        logger.info(f"🗣️ Ты: {user_text}")
 
         # 3. Brain + tool calling loop
         self.state.add("user", user_text)
         answer = await self._chat_with_tools(user_text)
         self.state.add("assistant", answer)
-        print(f"🤖 {self.config.assistant_name}: {answer}")
+        logger.info(f"🤖 Джарвис: {answer}")
 
         # 4. TTS
         await self.tts.speak(answer)

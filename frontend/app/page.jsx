@@ -64,6 +64,7 @@ export default function HistoryPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState('Все')
   const [search, setSearch] = useState('')
+  const [showRawLogs, setShowRawLogs] = useState(false)
   const bottomRef = useRef(null)
 
   const load = useCallback(async (silent = false) => {
@@ -106,6 +107,21 @@ export default function HistoryPage() {
 
   const Actions = (
     <div className="flex gap-2">
+      {/* Toggle View Mode */}
+      <button
+        onClick={() => setShowRawLogs(!showRawLogs)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border cursor-pointer text-xs font-medium transition-all duration-150
+          ${showRawLogs 
+            ? 'border-accent bg-accent-dim text-accent' 
+            : 'border-border bg-elevated text-secondary hover:text-primary'}`}
+      >
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {showRawLogs ? 'Режим чата' : 'Логи разработчика'}
+      </button>
+
+      {/* Clear history */}
       <button
         onClick={handleClear}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-red-500/20
@@ -118,6 +134,7 @@ export default function HistoryPage() {
         Очистить историю
       </button>
 
+      {/* Refresh */}
       <button
         onClick={() => load(true)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-border
@@ -134,75 +151,252 @@ export default function HistoryPage() {
   )
  
   return (
-    <div className="h-full flex flex-col" style={{ animation: 'fade-in 0.25s ease' }}>
+    <div className="h-full flex flex-col animate-fade-in">
       <PageHeader
         title="История"
-        subtitle={`${lines.length} записей · авто-обновление 5 сек`}
+        subtitle={showRawLogs ? `${lines.length} записей · авто-обновление 5 сек` : 'Интерактивный диалог с ассистентом'}
         action={Actions}
       />
 
-      {/* Toolbar */}
-      <div className="flex gap-2 mb-4 shrink-0 flex-wrap items-center">
-        {/* Search */}
-        <div className="flex-1 min-w-[200px] relative">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Поиск по логу..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-elevated border border-border rounded-[var(--radius-sm)]
-                       text-primary text-[13px] outline-none placeholder:text-muted
-                       focus:border-accent transition-colors duration-150"
-          />
-        </div>
+      {showRawLogs ? (
+        <>
+          {/* Toolbar */}
+          <div className="flex gap-2 mb-4 shrink-0 flex-wrap items-center">
+            {/* Search */}
+            <div className="flex-1 min-w-[200px] relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Поиск по логу..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-elevated border border-border rounded-[var(--radius-sm)]
+                           text-primary text-[13px] outline-none placeholder:text-muted
+                           focus:border-accent transition-colors duration-150"
+              />
+            </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-1">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-[var(--radius-sm)] border text-xs font-medium cursor-pointer transition-all duration-150
-                ${f === filter
-                  ? 'border-accent bg-accent-dim text-accent'
-                  : 'border-border bg-elevated text-secondary hover:text-primary'}`}
-            >{f}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Log rows */}
-      <div className="flex-1 overflow-auto flex flex-col gap-px">
-        {loading && Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="skeleton h-9" />
-        ))}
-
-        {!loading && filtered.length === 0 && (
-          <div className="flex items-center justify-center h-48 text-muted text-sm">
-            Записей не найдено
+            {/* Filter tabs */}
+            <div className="flex gap-1">
+              {FILTERS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 rounded-[var(--radius-sm)] border text-xs font-medium cursor-pointer transition-all duration-150
+                    ${f === filter
+                      ? 'border-accent bg-accent-dim text-accent'
+                      : 'border-border bg-elevated text-secondary hover:text-primary'}`}
+                >{f}</button>
+              ))}
+            </div>
           </div>
-        )}
 
-        {!loading && filtered.map((line, i) => (
+          {/* Log rows */}
+          <div className="flex-1 overflow-auto flex flex-col gap-px">
+            {loading && Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="skeleton h-9" />
+            ))}
+
+            {!loading && filtered.length === 0 && (
+              <div className="flex items-center justify-center h-48 text-muted text-sm">
+                Записей не найдено
+              </div>
+            )}
+
+            {!loading && filtered.map((line, i) => (
+              <div
+                key={i}
+                className={`flex items-baseline gap-2.5 px-2.5 py-1.5 rounded-md transition-colors duration-100
+                  hover:bg-elevated ${ROW_BG[line.level] ?? ''}`}
+              >
+                <span className="font-mono text-[11px] text-muted shrink-0 min-w-[80px]">
+                  {line.ts ? line.ts.slice(11, 19) : ''}
+                </span>
+                <LogBadge level={line.level} />
+                <span className="font-mono text-[12px] text-secondary flex-1 overflow-hidden">
+                  <MsgText msg={line.msg} />
+                </span>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        </>
+      ) : (
+        /* Chat view mode */
+        <ChatView messages={buildChatMessages(lines)} loading={loading} />
+      )}
+    </div>
+  )
+}
+
+// ─── Helpers: Chat Parser and View ───────────────────────────────────────────
+
+function buildChatMessages(parsedLines) {
+  const messages = []
+  let currentGroup = null
+
+  // Парсим логи снизу вверх (в хронологическом порядке)
+  const chronological = [...parsedLines].reverse()
+
+  chronological.forEach((line) => {
+    const msg = line.msg
+
+    if (msg.includes('🗣️ Ты:')) {
+      const text = msg.replace('🗣️ Ты:', '').trim()
+      currentGroup = {
+        id: line.ts + '-user-' + Math.random(),
+        sender: 'user',
+        text,
+        ts: line.ts ? line.ts.slice(11, 16) : '',
+        skills: []
+      }
+      messages.push(currentGroup)
+    } else if (msg.includes('🤖 Джарвис:')) {
+      const text = msg.replace('🤖 Джарвис:', '').trim()
+      currentGroup = {
+        id: line.ts + '-jarvis-' + Math.random(),
+        sender: 'jarvis',
+        text,
+        ts: line.ts ? line.ts.slice(11, 16) : '',
+        skills: []
+      }
+      messages.push(currentGroup)
+    } else if (msg.includes('📝 STT:')) {
+      // Фолбэк для старых записей
+      const text = msg.replace('📝 STT:', '').trim()
+      const cleanText = text.replace(/^'|'$/g, '').trim()
+      currentGroup = {
+        id: line.ts + '-user-' + Math.random(),
+        sender: 'user',
+        text: cleanText,
+        ts: line.ts ? line.ts.slice(11, 16) : '',
+        skills: []
+      }
+      messages.push(currentGroup)
+    } else if (msg.includes('→') && (msg.includes('(✓)') || msg.includes('(✗)'))) {
+      const isSuccess = msg.includes('(✓)')
+      const cleanMsg = msg.replace(/.*?→\s*\w+\s*\([✓✗]\):\s*/, '').trim()
+      const skillNameMatch = msg.match(/→\s*(\w+)/)
+      const skillName = skillNameMatch ? skillNameMatch[1] : 'skill'
+
+      if (currentGroup) {
+        currentGroup.skills.push({
+          name: skillName,
+          success: isSuccess,
+          message: cleanMsg
+        })
+      } else {
+        messages.push({
+          id: line.ts + '-sys-' + Math.random(),
+          sender: 'system',
+          text: `${isSuccess ? '✓' : '✗'} [${skillName}] ${cleanMsg}`,
+          ts: line.ts ? line.ts.slice(11, 16) : '',
+          skills: []
+        })
+      }
+    }
+  })
+
+  // Возвращаем новые сверху
+  return messages.reverse()
+}
+
+function ChatView({ messages, loading }) {
+  if (loading && messages.length === 0) {
+    return (
+      <div className="flex-1 overflow-auto px-4 py-2 flex flex-col gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={`flex gap-3 max-w-[80%] ${i % 2 === 0 ? 'self-end flex-row-reverse' : 'self-start'}`}>
+            <div className="w-8 h-8 rounded-full bg-elevated animate-pulse shrink-0" />
+            <div className="h-16 w-48 bg-elevated rounded-2xl animate-pulse" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-muted text-sm gap-2">
+        <svg className="w-10 h-10 text-muted opacity-40 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+        <span>Чат пуст. Произнесите команду «Джарвис»!</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 overflow-auto px-4 py-2 flex flex-col gap-4">
+      {/* Рендерим снизу вверх: самые новые внизу для привычного чата */}
+      {[...messages].reverse().map((msg) => {
+        const isUser = msg.sender === 'user'
+        const isSystem = msg.sender === 'system'
+
+        if (isSystem) {
+          return (
+            <div key={msg.id} className="flex justify-center my-1">
+              <span className="text-[11px] bg-elevated border border-border px-2.5 py-1 rounded-full text-muted font-mono">
+                {msg.text}
+              </span>
+            </div>
+          )
+        }
+
+        return (
           <div
-            key={i}
-            className={`flex items-baseline gap-2.5 px-2.5 py-1.5 rounded-md transition-colors duration-100
-              hover:bg-elevated ${ROW_BG[line.level] ?? ''}`}
+            key={msg.id}
+            className={`flex gap-3 max-w-[85%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'} animate-fade-in`}
           >
-            <span className="font-mono text-[11px] text-muted shrink-0 min-w-[80px]">
-              {line.ts ? line.ts.slice(11, 19) : ''}
-            </span>
-            <LogBadge level={line.level} />
-            <span className="font-mono text-[12px] text-secondary flex-1 overflow-hidden">
-              <MsgText msg={line.msg} />
-            </span>
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold font-sans shadow-md select-none
+              ${isUser 
+                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                : 'bg-gradient-to-br from-cyan-500/20 to-accent/30 border border-accent/40 text-accent'}`}
+            >
+              {isUser ? 'U' : 'J'}
+            </div>
+
+            {/* Bubble */}
+            <div className="flex flex-col gap-1.5">
+              <div
+                className={`px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed shadow-sm
+                  ${isUser 
+                    ? 'bg-accent text-white rounded-tr-none' 
+                    : 'bg-surface border border-border text-primary rounded-tl-none'}`}
+              >
+                <div>{msg.text}</div>
+                
+                {/* Time */}
+                <div className={`text-[9px] mt-1.5 text-right opacity-60 font-mono`}>
+                  {msg.ts}
+                </div>
+              </div>
+
+              {/* Skills Executed */}
+              {msg.skills && msg.skills.length > 0 && (
+                <div className={`flex flex-wrap gap-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  {msg.skills.map((s, idx) => (
+                    <span 
+                      key={idx} 
+                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-mono
+                        ${s.success 
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                          : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
+                      title={`Навык: ${s.name}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                      {s.message}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+        )
+      })}
     </div>
   )
 }
