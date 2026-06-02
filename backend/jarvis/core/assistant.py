@@ -277,7 +277,10 @@ class Assistant:
         if self.hotkey_trigger is not None:
             import asyncio as _a
 
-            self.hotkey_trigger.start(_a.get_running_loop())
+            try:
+                self.hotkey_trigger.start(_a.get_running_loop())
+            except Exception as e:
+                logger.warning("Не удалось запустить GlobalHotkeyTrigger: {}", e)
 
         logger.info("🤖 {} готов. Ctrl+C чтобы выйти.", self.config.assistant_name)
         # Приветствие — сначала пробуем играть клип Джарвиса (по времени дня),

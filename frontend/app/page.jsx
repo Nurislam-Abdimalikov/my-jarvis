@@ -1,46 +1,11 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import PageHeader from '../components/PageHeader'
+import ChatView from '../components/ChatView'
+import LogTable from '../components/LogTable'
+import { parseLine, buildChatMessages } from '../utils/chatUtils'
 
 const REFRESH_INTERVAL = 5000
-
-function parseLine(raw) {
-  const m = raw.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\s*\|\s*(\w+)\s*\|\s*(.+?)\s*-\s*(.+)$/)
-  if (!m) return { raw, ts: '', level: 'INFO', module: '', msg: raw }
-  return { raw, ts: m[1], level: m[2].trim(), module: m[3].trim(), msg: m[4].trim() }
-}
-
-const LEVEL_CLASS = {
-  INFO:    'bg-elevated text-muted',
-  WARNING: 'bg-warn-dim text-warn',
-  ERROR:   'bg-danger-dim text-danger',
-  DEBUG:   'bg-elevated text-muted',
-}
-
-const ROW_BG = {
-  WARNING: 'bg-warn-dim/40',
-  ERROR:   'bg-danger-dim/40',
-}
-
-function LogBadge({ level }) {
-  return (
-    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 font-mono tracking-wide ${LEVEL_CLASS[level] || 'bg-elevated text-muted'}`}>
-      {level}
-    </span>
-  )
-}
-
-function MsgText({ msg }) {
-  if (msg.includes('📝 STT:')) {
-    const text = msg.replace('📝 STT:', '').trim()
-    return <span><span className="text-accent mr-1.5">📝</span><span className="text-primary font-medium">{text}</span></span>
-  }
-  if (msg.includes('Tool calls'))  return <span className="text-info">{msg}</span>
-  if (msg.includes('✨ Wake word')) return <span className="text-ok">{msg}</span>
-  if (msg.includes('→') && msg.includes('(✓)')) return <span className="text-ok">{msg}</span>
-  return <span>{msg}</span>
-}
-
 const FILTERS = ['Все', 'Команды', 'Ошибки', 'Wake Word']
 
 const MOCK = [
@@ -149,7 +114,7 @@ export default function HistoryPage() {
       </button>
     </div>
   )
- 
+
   return (
     <div className="h-full flex flex-col animate-fade-in">
       <PageHeader
@@ -193,210 +158,12 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Log rows */}
-          <div className="flex-1 overflow-auto flex flex-col gap-px">
-            {loading && Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton h-9" />
-            ))}
-
-            {!loading && filtered.length === 0 && (
-              <div className="flex items-center justify-center h-48 text-muted text-sm">
-                Записей не найдено
-              </div>
-            )}
-
-            {!loading && filtered.map((line, i) => (
-              <div
-                key={i}
-                className={`flex items-baseline gap-2.5 px-2.5 py-1.5 rounded-md transition-colors duration-100
-                  hover:bg-elevated ${ROW_BG[line.level] ?? ''}`}
-              >
-                <span className="font-mono text-[11px] text-muted shrink-0 min-w-[80px]">
-                  {line.ts ? line.ts.slice(11, 19) : ''}
-                </span>
-                <LogBadge level={line.level} />
-                <span className="font-mono text-[12px] text-secondary flex-1 overflow-hidden">
-                  <MsgText msg={line.msg} />
-                </span>
-              </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
+          <LogTable filteredLines={filtered} loading={loading} bottomRef={bottomRef} />
         </>
       ) : (
-        /* Chat view mode */
-        <ChatView messages={buildChatMessages(lines)} loading={loading} />
+        /* Chat View Mode */
+        <ChatView messages={buildChatMessages(lines)} rawLines={lines} loading={loading} />
       )}
-    </div>
-  )
-}
-
-// ─── Helpers: Chat Parser and View ───────────────────────────────────────────
-
-function buildChatMessages(parsedLines) {
-  const messages = []
-  let currentGroup = null
-
-  // Парсим логи снизу вверх (в хронологическом порядке)
-  const chronological = [...parsedLines].reverse()
-
-  chronological.forEach((line) => {
-    const msg = line.msg
-
-    if (msg.includes('🗣️ Ты:')) {
-      const text = msg.replace('🗣️ Ты:', '').trim()
-      currentGroup = {
-        id: line.ts + '-user-' + Math.random(),
-        sender: 'user',
-        text,
-        ts: line.ts ? line.ts.slice(11, 16) : '',
-        skills: []
-      }
-      messages.push(currentGroup)
-    } else if (msg.includes('🤖 Джарвис:')) {
-      const text = msg.replace('🤖 Джарвис:', '').trim()
-      currentGroup = {
-        id: line.ts + '-jarvis-' + Math.random(),
-        sender: 'jarvis',
-        text,
-        ts: line.ts ? line.ts.slice(11, 16) : '',
-        skills: []
-      }
-      messages.push(currentGroup)
-    } else if (msg.includes('📝 STT:')) {
-      // Фолбэк для старых записей
-      const text = msg.replace('📝 STT:', '').trim()
-      const cleanText = text.replace(/^'|'$/g, '').trim()
-      currentGroup = {
-        id: line.ts + '-user-' + Math.random(),
-        sender: 'user',
-        text: cleanText,
-        ts: line.ts ? line.ts.slice(11, 16) : '',
-        skills: []
-      }
-      messages.push(currentGroup)
-    } else if (msg.includes('→') && (msg.includes('(✓)') || msg.includes('(✗)'))) {
-      const isSuccess = msg.includes('(✓)')
-      const cleanMsg = msg.replace(/.*?→\s*\w+\s*\([✓✗]\):\s*/, '').trim()
-      const skillNameMatch = msg.match(/→\s*(\w+)/)
-      const skillName = skillNameMatch ? skillNameMatch[1] : 'skill'
-
-      if (currentGroup) {
-        currentGroup.skills.push({
-          name: skillName,
-          success: isSuccess,
-          message: cleanMsg
-        })
-      } else {
-        messages.push({
-          id: line.ts + '-sys-' + Math.random(),
-          sender: 'system',
-          text: `${isSuccess ? '✓' : '✗'} [${skillName}] ${cleanMsg}`,
-          ts: line.ts ? line.ts.slice(11, 16) : '',
-          skills: []
-        })
-      }
-    }
-  })
-
-  // Возвращаем новые сверху
-  return messages.reverse()
-}
-
-function ChatView({ messages, loading }) {
-  if (loading && messages.length === 0) {
-    return (
-      <div className="flex-1 overflow-auto px-4 py-2 flex flex-col gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={`flex gap-3 max-w-[80%] ${i % 2 === 0 ? 'self-end flex-row-reverse' : 'self-start'}`}>
-            <div className="w-8 h-8 rounded-full bg-elevated animate-pulse shrink-0" />
-            <div className="h-16 w-48 bg-elevated rounded-2xl animate-pulse" />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (messages.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-muted text-sm gap-2">
-        <svg className="w-10 h-10 text-muted opacity-40 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-        </svg>
-        <span>Чат пуст. Произнесите команду «Джарвис»!</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex-1 overflow-auto px-4 py-2 flex flex-col gap-4">
-      {/* Рендерим снизу вверх: самые новые внизу для привычного чата */}
-      {[...messages].reverse().map((msg) => {
-        const isUser = msg.sender === 'user'
-        const isSystem = msg.sender === 'system'
-
-        if (isSystem) {
-          return (
-            <div key={msg.id} className="flex justify-center my-1">
-              <span className="text-[11px] bg-elevated border border-border px-2.5 py-1 rounded-full text-muted font-mono">
-                {msg.text}
-              </span>
-            </div>
-          )
-        }
-
-        return (
-          <div
-            key={msg.id}
-            className={`flex gap-3 max-w-[85%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'} animate-fade-in`}
-          >
-            {/* Avatar */}
-            <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold font-sans shadow-md select-none
-              ${isUser 
-                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
-                : 'bg-gradient-to-br from-cyan-500/20 to-accent/30 border border-accent/40 text-accent'}`}
-            >
-              {isUser ? 'U' : 'J'}
-            </div>
-
-            {/* Bubble */}
-            <div className="flex flex-col gap-1.5">
-              <div
-                className={`px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed shadow-sm
-                  ${isUser 
-                    ? 'bg-accent text-white rounded-tr-none' 
-                    : 'bg-surface border border-border text-primary rounded-tl-none'}`}
-              >
-                <div>{msg.text}</div>
-                
-                {/* Time */}
-                <div className={`text-[9px] mt-1.5 text-right opacity-60 font-mono`}>
-                  {msg.ts}
-                </div>
-              </div>
-
-              {/* Skills Executed */}
-              {msg.skills && msg.skills.length > 0 && (
-                <div className={`flex flex-wrap gap-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  {msg.skills.map((s, idx) => (
-                    <span 
-                      key={idx} 
-                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-mono
-                        ${s.success 
-                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                          : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
-                      title={`Навык: ${s.name}`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                      {s.message}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }

@@ -17,6 +17,12 @@ import threading
 from loguru import logger
 from pynput import keyboard
 
+# Monkeypatch pynput GlobalHotKeys._on_press to handle extra 'injected' argument on macOS
+_orig_on_press = keyboard.GlobalHotKeys._on_press
+def _patched_on_press(self, key, *args, **kwargs):
+    return _orig_on_press(self, key)
+keyboard.GlobalHotKeys._on_press = _patched_on_press
+
 
 class GlobalHotkeyTrigger:
     """Слушает глобальную комбинацию клавиш и сигнализирует asyncio-event."""
@@ -52,11 +58,16 @@ class GlobalHotkeyTrigger:
                 self._listener.start()
                 logger.info("⌨️  Hotkey зарегистрирован: {}", self.hotkey)
             except Exception as e:  # noqa: BLE001
+                try:
+                    err_str = str(e)
+                except Exception:
+                    err_str = type(e).__name__
+
                 logger.warning(
                     "Не удалось зарегистрировать hotkey {}: {}. "
                     "Проверь Accessibility permission в System Settings.",
                     self.hotkey,
-                    e,
+                    err_str,
                 )
                 self._listener = None
 
