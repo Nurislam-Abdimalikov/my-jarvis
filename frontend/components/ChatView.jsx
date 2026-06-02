@@ -108,17 +108,30 @@ export default function ChatView({ messages, rawLines, loading }) {
 
       {/* Interactive Status Footer */}
       <div className="p-3 border-t border-border bg-surface/50 flex items-center justify-center shrink-0">
-        <StatusIndicator status={status} />
+        <StatusIndicator 
+          status={status} 
+          onClick={async () => {
+            if (status.code === 'speaking') {
+              if (typeof window !== 'undefined' && window.jarvis) {
+                await window.jarvis.stopTts()
+              }
+            }
+          }}
+        />
       </div>
     </div>
   )
 }
 
-function StatusIndicator({ status }) {
+function StatusIndicator({ status, onClick }) {
   const { code, label } = status
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-full bg-elevated/60 border border-border/80 shadow-md">
+    <div 
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-full bg-elevated/60 border border-border/80 shadow-md transition-all duration-150 group
+        ${code === 'speaking' ? 'cursor-pointer hover:border-red-500/40 hover:bg-red-500/5' : ''}`}
+    >
       {/* Animated Waveform / Reactor Widget */}
       <div className="w-6 h-6 flex items-center justify-center relative">
         {code === 'listening' && (
@@ -141,12 +154,16 @@ function StatusIndicator({ status }) {
         )}
 
         {code === 'speaking' && (
-          <div className="flex items-end gap-0.5 h-3.5 w-4 justify-center">
-            <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '100%', animationDelay: '0.1s' }} />
-            <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '70%', animationDelay: '0.4s' }} />
-            <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '100%', animationDelay: '0.2s' }} />
-            <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '50%', animationDelay: '0.6s' }} />
-          </div>
+          <>
+            {/* Show audio wave in normal state, show stop icon on hover */}
+            <div className="flex items-end gap-0.5 h-3.5 w-4 justify-center group-hover:hidden">
+              <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '100%', animationDelay: '0.1s' }} />
+              <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '70%', animationDelay: '0.4s' }} />
+              <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '100%', animationDelay: '0.2s' }} />
+              <span className="w-0.5 bg-accent sound-bar-animate rounded-full" style={{ height: '50%', animationDelay: '0.6s' }} />
+            </div>
+            <div className="hidden group-hover:flex items-center justify-center w-3 h-3 bg-red-400 rounded-sm" />
+          </>
         )}
 
         {code === 'idle' && (
@@ -154,9 +171,17 @@ function StatusIndicator({ status }) {
         )}
       </div>
 
-      <span className="text-[12px] font-semibold text-secondary tracking-wide select-none">
-        {label}
+      <span className={`text-[12px] font-semibold text-secondary tracking-wide select-none transition-colors duration-150
+        ${code === 'speaking' ? 'group-hover:text-red-400' : ''}`}
+      >
+        {code === 'speaking' ? (
+          <span className="relative">
+            <span className="group-hover:hidden">{label}</span>
+            <span className="hidden group-hover:inline">Остановить</span>
+          </span>
+        ) : label}
       </span>
     </div>
   )
 }
+

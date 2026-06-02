@@ -50,6 +50,12 @@ class GlobalHotkeyTrigger:
             def on_hotkey() -> None:
                 if self._loop is None or self._event is None:
                     return
+                # Прерываем текущий TTS
+                from jarvis.tts.base import STOP_FLAG_PATH
+                try:
+                    STOP_FLAG_PATH.touch()
+                except Exception:
+                    pass
                 # pynput callback крутится в своём треде — кидаем в asyncio loop.
                 self._loop.call_soon_threadsafe(self._event.set)
 
