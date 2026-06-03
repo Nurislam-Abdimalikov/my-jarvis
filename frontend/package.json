@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/react": "19.2.16",
     "concurrently": "^9.1.2",
     "electron": "^36.3.1",
     "electron-builder": "^26.0.12",

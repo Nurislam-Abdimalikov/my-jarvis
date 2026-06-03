@@ -62,3 +62,9 @@ node_modules/
 .next/
 out/
 dist-electron/
+
+# --- macOS / Swift ---
+.build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
