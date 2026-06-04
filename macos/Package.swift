@@ -20,7 +20,8 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Yams", package: "Yams")
             ],
-            path: "Jarvis"
+            path: "Jarvis",
+            exclude: ["Info.plist"]
         )
     ]
 )

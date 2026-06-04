@@ -3,6 +3,7 @@ import SwiftUI
 /// Основное представление MenuBarExtra — компактный статус и быстрые действия.
 struct MenuBarView: View {
     @ObservedObject var watcher: LogWatcher
+    @Environment(\.openWindow) private var openWindow
 
     private var chatMessages: [ChatMessage] {
         LogParser.buildChatMessages(from: watcher.entries)
@@ -104,6 +105,23 @@ struct MenuBarView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
+
+                Divider()
+
+                Button {
+                    openWindow(id: "chat")
+                } label: {
+                    HStack {
+                        Image(systemName: "message")
+                        Text("Открыть чат...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
 
                 Divider()
 

@@ -22,6 +22,12 @@ struct JarvisApp: App {
         }
         .menuBarExtraStyle(.window)
         .defaultSize(width: 320, height: 400)
+
+        // Отдельное окно чата
+        Window("Чат", id: "chat") {
+            ChatWindow(watcher: logWatcher)
+        }
+        .defaultSize(width: 500, height: 600)
     }
 
     /// Иконка в menubar меняется в зависимости от статуса ассистента.
