@@ -3,6 +3,7 @@ import SwiftUI
 /// Основное представление MenuBarExtra — компактный статус и быстрые действия.
 struct MenuBarView: View {
     @ObservedObject var watcher: LogWatcher
+    @ObservedObject var launchAtLogin: LaunchAtLogin
     @Environment(\.openWindow) private var openWindow
 
     private var chatMessages: [ChatMessage] {
@@ -172,6 +173,17 @@ struct MenuBarView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Toggle(isOn: $launchAtLogin.isEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bolt.horizontal.circle")
+                        Text("Запуск при входе")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                }
+                .toggleStyle(.checkbox)
                 .padding(.vertical, 4)
 
                 Divider()

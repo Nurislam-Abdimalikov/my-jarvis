@@ -7,12 +7,13 @@ import SwiftUI
 @main
 struct JarvisApp: App {
     @StateObject private var logWatcher = LogWatcher()
+    @StateObject private var launchAtLogin = LaunchAtLogin()
 
     var body: some Scene {
         // MenuBarExtra — нативный menubar macOS 14+.
         // Иконка в трее с выпадающей панелью.
         MenuBarExtra {
-            MenuBarView(watcher: logWatcher)
+            MenuBarView(watcher: logWatcher, launchAtLogin: launchAtLogin)
         } label: {
             Label {
                 Text("Jarvis")
