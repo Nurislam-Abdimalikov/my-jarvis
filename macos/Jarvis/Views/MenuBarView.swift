@@ -143,6 +143,23 @@ struct MenuBarView: View {
                 Divider()
 
                 Button {
+                    openWindow(id: "memory")
+                } label: {
+                    HStack {
+                        Image(systemName: "brain")
+                        Text("Память Джарвиса...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
                     HStack {

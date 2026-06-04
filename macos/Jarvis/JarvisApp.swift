@@ -34,6 +34,12 @@ struct JarvisApp: App {
             SkillsView()
         }
         .defaultSize(width: 600, height: 500)
+
+        // Окно памяти
+        Window("Память Джарвиса", id: "memory") {
+            MemoryView()
+        }
+        .defaultSize(width: 500, height: 600)
     }
 
     /// Иконка в menubar меняется в зависимости от статуса ассистента.
