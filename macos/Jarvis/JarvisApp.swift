@@ -40,6 +40,12 @@ struct JarvisApp: App {
             MemoryView()
         }
         .defaultSize(width: 500, height: 600)
+
+        // Окно статистики
+        Window("Статистика Jarvis", id: "stats") {
+            StatsView(watcher: logWatcher)
+        }
+        .defaultSize(width: 500, height: 600)
     }
 
     /// Иконка в menubar меняется в зависимости от статуса ассистента.
