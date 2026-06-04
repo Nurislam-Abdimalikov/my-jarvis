@@ -3,6 +3,8 @@ import SwiftUI
 /// Основное представление MenuBarExtra — компактный статус и быстрые действия.
 struct MenuBarView: View {
     @ObservedObject var watcher: LogWatcher
+    @ObservedObject var launchAtLogin: LaunchAtLogin
+    @Environment(\.openWindow) private var openWindow
 
     private var chatMessages: [ChatMessage] {
         LogParser.buildChatMessages(from: watcher.entries)
@@ -104,6 +106,85 @@ struct MenuBarView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
+
+                Divider()
+
+                Button {
+                    openWindow(id: "chat")
+                } label: {
+                    HStack {
+                        Image(systemName: "message")
+                        Text("Открыть чат...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                Button {
+                    openWindow(id: "skills")
+                } label: {
+                    HStack {
+                        Image(systemName: "slider.horizontal.3")
+                        Text("Навыки Джарвиса...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                Button {
+                    openWindow(id: "memory")
+                } label: {
+                    HStack {
+                        Image(systemName: "brain")
+                        Text("Память Джарвиса...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                Button {
+                    openWindow(id: "stats")
+                } label: {
+                    HStack {
+                        Image(systemName: "chart.bar")
+                        Text("Статистика Jarvis...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Toggle(isOn: $launchAtLogin.isEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bolt.horizontal.circle")
+                        Text("Запуск при входе")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                }
+                .toggleStyle(.checkbox)
+                .padding(.vertical, 4)
 
                 Divider()
 

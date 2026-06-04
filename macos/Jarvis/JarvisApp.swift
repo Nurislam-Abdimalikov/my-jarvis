@@ -7,12 +7,13 @@ import SwiftUI
 @main
 struct JarvisApp: App {
     @StateObject private var logWatcher = LogWatcher()
+    @StateObject private var launchAtLogin = LaunchAtLogin()
 
     var body: some Scene {
         // MenuBarExtra — нативный menubar macOS 14+.
         // Иконка в трее с выпадающей панелью.
         MenuBarExtra {
-            MenuBarView(watcher: logWatcher)
+            MenuBarView(watcher: logWatcher, launchAtLogin: launchAtLogin)
         } label: {
             Label {
                 Text("Jarvis")
@@ -22,6 +23,30 @@ struct JarvisApp: App {
         }
         .menuBarExtraStyle(.window)
         .defaultSize(width: 320, height: 400)
+
+        // Отдельное окно чата
+        Window("Чат", id: "chat") {
+            ChatWindow(watcher: logWatcher)
+        }
+        .defaultSize(width: 500, height: 600)
+
+        // Окно навыков
+        Window("Навыки Джарвиса", id: "skills") {
+            SkillsView()
+        }
+        .defaultSize(width: 600, height: 500)
+
+        // Окно памяти
+        Window("Память Джарвиса", id: "memory") {
+            MemoryView()
+        }
+        .defaultSize(width: 500, height: 600)
+
+        // Окно статистики
+        Window("Статистика Jarvis", id: "stats") {
+            StatsView(watcher: logWatcher)
+        }
+        .defaultSize(width: 500, height: 600)
     }
 
     /// Иконка в menubar меняется в зависимости от статуса ассистента.

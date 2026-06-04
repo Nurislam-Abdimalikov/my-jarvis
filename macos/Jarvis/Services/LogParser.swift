@@ -89,4 +89,66 @@ enum LogParser {
 
         return messages
     }
+
+    /// Структура данных статистики.
+    struct StatsData {
+        let today: Int
+        let total: Int
+        let topCommands: [CommandStat]
+    }
+
+    /// Элемент статистики команды.
+    struct CommandStat: Identifiable, Equatable {
+        var id: String { name }
+        let name: String
+        let count: Int
+    }
+
+    /// Подсчитать статистику использования из записей лога.
+    static func calculateStats(from entries: [LogEntry]) -> StatsData {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-02" // В логах даты 2026-06-02/03/04
+        
+        // Получим реальную текущую дату
+        formatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = formatter.string(from: Date())
+
+        let sttEntries = entries.filter { $0.message.contains("📝 STT:") }
+        let total = sttEntries.count
+        let today = sttEntries.filter { $0.timestamp.hasPrefix(todayStr) }.count
+
+        var toolCounts: [String: Int] = [:]
+        
+        let toolCallEntries = entries.filter {
+            $0.message.contains("Tool calls") && $0.message.contains("[")
+        }
+
+        for entry in toolCallEntries {
+            let msg = entry.message
+            let pattern = "\\[([^\\]]+)\\]"
+            
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: msg, range: NSRange(msg.startIndex..., in: msg)),
+                  let range = Range(match.range(at: 1), in: msg) else {
+                continue
+            }
+            
+            let toolsStr = String(msg[range])
+            let tools = toolsStr.components(separatedBy: ",")
+                .map { $0.replacingOccurrences(of: "'", with: "")
+                         .replacingOccurrences(of: "\"", with: "")
+                         .trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            for tool in tools {
+                toolCounts[tool, default: 0] += 1
+            }
+        }
+
+        let topCommands = toolCounts.map { CommandStat(name: $0.key, count: $0.value) }
+            .sorted { $0.count > $1.count }
+            .prefix(8)
+
+        return StatsData(today: today, total: total, topCommands: Array(topCommands))
+    }
 }
