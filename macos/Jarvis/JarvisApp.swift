@@ -28,6 +28,12 @@ struct JarvisApp: App {
             ChatWindow(watcher: logWatcher)
         }
         .defaultSize(width: 500, height: 600)
+
+        // Окно навыков
+        Window("Навыки Джарвиса", id: "skills") {
+            SkillsView()
+        }
+        .defaultSize(width: 600, height: 500)
     }
 
     /// Иконка в menubar меняется в зависимости от статуса ассистента.

@@ -126,6 +126,23 @@ struct MenuBarView: View {
                 Divider()
 
                 Button {
+                    openWindow(id: "skills")
+                } label: {
+                    HStack {
+                        Image(systemName: "slider.horizontal.3")
+                        Text("Навыки Джарвиса...")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
                     HStack {
