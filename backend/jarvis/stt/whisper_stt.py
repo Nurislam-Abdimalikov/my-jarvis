@@ -88,6 +88,11 @@ class WhisperSTT(BaseSTT):
         text = " ".join(seg.text.strip() for seg in segments).strip()
         elapsed = time.perf_counter() - t0
         logger.info("📝 STT: '{}' (lang={}, {:.1f}s)", text, info.language, elapsed)
+
+        from jarvis.core.event_logger import log_stt_result
+
+        log_stt_result(text=text, language=info.language, duration=elapsed)
+
         return TranscriptionResult(
             text=text,
             language=info.language,

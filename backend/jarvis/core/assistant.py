@@ -319,8 +319,10 @@ class Assistant:
         Что первое сработало — то и активирует запись команды.
         """
         if self.wake_word is not None:
+
             async def on_wake_cb() -> None:
                 from jarvis.tts.base import STOP_FLAG_PATH
+
                 try:
                     STOP_FLAG_PATH.touch()
                 except Exception:
@@ -339,6 +341,7 @@ class Assistant:
         else:
             # Wake-word выключен — fallback на push-to-talk (старое поведение).
             from jarvis.tts.base import STOP_FLAG_PATH
+
             try:
                 STOP_FLAG_PATH.touch()
             except Exception:
@@ -346,26 +349,31 @@ class Assistant:
             hotkey = self.config.push_to_talk.hotkey
             audio = await self.recorder.record_push_to_talk(hotkey=hotkey)
 
-
         if audio.size == 0:
             logger.warning("Пустая запись, пропускаю turn")
             return
 
+        from jarvis.core.event_logger import log_assistant_message, log_status, log_user_message
+
         # 2. STT
+        log_status("processing")
         result = await self.stt.transcribe(audio, sample_rate=self.config.audio.sample_rate)
         user_text = _strip_wake_word_prefix(result.text.strip())
         if not user_text:
             logger.warning("STT не распознал речь (или только wake word), пропускаю turn")
             return
         logger.info(f"🗣️ Ты: {user_text}")
+        log_user_message(user_text)
 
         # 3. Brain + tool calling loop
         self.state.add("user", user_text)
         answer = await self._chat_with_tools(user_text)
         self.state.add("assistant", answer)
         logger.info(f"🤖 Джарвис: {answer}")
+        log_assistant_message(answer)
 
         # 4. TTS
+        log_status("speaking")
         await self.tts.speak(answer)
 
     async def _chat_with_tools(self, user_text: str) -> str:
@@ -405,6 +413,9 @@ class Assistant:
                 iteration + 1,
                 [tc.name for tc in response.tool_calls],
             )
+            from jarvis.core.event_logger import log_skill_result, log_skills_call
+
+            log_skills_call([tc.name for tc in response.tool_calls])
 
             # 1) Добавить assistant-сообщение с tool_calls в формате OpenAI
             messages.append(self._build_assistant_tool_message(response.text, response.tool_calls))
@@ -420,6 +431,7 @@ class Assistant:
                 logger.info(
                     "   → {} ({}): {}", tc.name, "✓" if result.success else "✗", result.message
                 )
+                log_skill_result(tc.name, result.success, result.message)
                 if result.success and result.message:
                     last_tool_results.append(result.message)
                 messages.append(

@@ -135,6 +135,9 @@ class WakeWordListener:
 
         try:
             logger.info('🟢 Слушаю фоном. Скажи "Джарвис" чтобы активировать...')
+            from jarvis.core.event_logger import log_status
+
+            log_status("listening")
 
             # 1) Ждём wake word (или внешний force_trigger через hotkey).
             triggered = await loop.run_in_executor(
@@ -144,6 +147,9 @@ class WakeWordListener:
                 return np.zeros(0, dtype=np.float32)
 
             logger.info("✨ Wake word услышан — слушаю команду...")
+            from jarvis.core.event_logger import log_status
+
+            log_status("recording")
 
             # Pre-roll (~600 мс до wake) всегда добавляем в начало записи.
             prepend_frames: list[np.ndarray] = list(self._pre_roll)

@@ -18,9 +18,9 @@ final class LogWatcher: ObservableObject {
     private let maxLines = 800
 
     init() {
-        // ~/jarvis/logs/jarvis.log
+        // ~/jarvis/logs/events.jsonl
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        self.logPath = "\(home)/jarvis/logs/jarvis.log"
+        self.logPath = "\(home)/jarvis/logs/events.jsonl"
     }
 
     /// Начать наблюдение. Вызывается при появлении view.
@@ -80,11 +80,12 @@ final class LogWatcher: ObservableObject {
             .filter { !$0.isEmpty }
             .suffix(maxLines)
 
-        entries = lines.map { LogEntry.parse($0) }
+        entries = lines.compactMap { LogEntry.parse($0) }
 
-        // Статус определяем по последней строке
-        if let lastEntry = entries.last {
-            status = AssistantStatus.from(message: lastEntry.message)
+        // Статус определяем по последней строке статуса
+        if let lastStatusEntry = entries.last(where: { $0.type == "status" }),
+           let statusStr = lastStatusEntry.status {
+            status = AssistantStatus.from(code: statusStr)
         } else {
             status = .idle
         }
