@@ -4,7 +4,7 @@ const fs = require('fs')
 const os = require('os')
 
 const JARVIS_ROOT = path.join(os.homedir(), 'jarvis')
-const LOG_PATH = path.join(JARVIS_ROOT, 'logs', 'jarvis.log')
+const LOG_PATH = path.join(JARVIS_ROOT, 'logs', 'events.jsonl')
 const MEMORY_DB_PATH = path.join(JARVIS_ROOT, 'memory.db')
 const SKILLS_YAML_PATH = path.join(JARVIS_ROOT, 'config', 'skills.yaml')
 
@@ -53,7 +53,7 @@ function createTray() {
   trayIcon.setTemplateImage(true) // Авто-смена цвета иконки на macOS
 
   tray = new Tray(trayIcon)
-  
+
   const updateMenu = () => {
     const isAutostart = app.getLoginItemSettings().openAtLogin
     const contextMenu = Menu.buildFromTemplate([
@@ -106,7 +106,7 @@ function createTray() {
 app.whenReady().then(() => {
   createWindow()
   createTray()
-  
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
     else if (win) win.show()
@@ -185,19 +185,25 @@ ipcMain.handle('get-stats', async () => {
     const lines = content.split('\n').filter(Boolean)
 
     const today = new Date().toISOString().slice(0, 10)
-
-    const sttLines = lines.filter(l => l.includes('📝 STT:'))
-    const todaySTT = sttLines.filter(l => l.startsWith(today))
-
-    const toolCallLines = lines.filter(l => l.includes('Tool calls') && l.includes('['))
+    let todayCount = 0
+    let totalCount = 0
     const toolCounts = {}
-    for (const line of toolCallLines) {
-      const match = line.match(/\[([^\]]+)\]/)
-      if (match) {
-        const tools = match[1].split(',').map(t => t.replace(/['"]/g, '').trim()).filter(Boolean)
-        for (const tool of tools) {
-          toolCounts[tool] = (toolCounts[tool] || 0) + 1
+
+    for (const line of lines) {
+      try {
+        const event = JSON.parse(line)
+        if (event.type === 'stt_result') {
+          totalCount++
+          if (event.ts && event.ts.startsWith(today)) {
+            todayCount++
+          }
+        } else if (event.type === 'skill_result') {
+          if (event.name) {
+            toolCounts[event.name] = (toolCounts[event.name] || 0) + 1
+          }
         }
+      } catch (e) {
+        // Игнорируем некорректные строки
       }
     }
 
@@ -206,7 +212,7 @@ ipcMain.handle('get-stats', async () => {
       .slice(0, 8)
       .map(([name, count]) => ({ name, count }))
 
-    return { today: todaySTT.length, total: sttLines.length, topCommands }
+    return { today: todayCount, total: totalCount, topCommands }
   } catch (err) {
     console.error('get-stats error:', err)
     return { today: 0, total: 0, topCommands: [] }
@@ -253,4 +259,3 @@ ipcMain.handle('set-autostart-status', async (_, value) => {
     return false
   }
 })
-

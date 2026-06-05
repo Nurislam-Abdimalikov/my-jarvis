@@ -12,63 +12,31 @@ enum LogParser {
         var currentGroup: (sender: ChatMessage.Sender, text: String, time: String, skills: [ChatMessage.SkillResult])?
 
         for entry in entries {
-            let msg = entry.message
-
-            if msg.contains("🗣️ Ты:") {
-                // Сохранить предыдущую группу
+            switch entry.type {
+            case "user_message":
                 if let group = currentGroup {
                     messages.append(ChatMessage(sender: group.sender, text: group.text, time: group.time, skills: group.skills))
                 }
-                let text = msg.replacingOccurrences(of: "🗣️ Ты:", with: "").trimmingCharacters(in: .whitespaces)
-                currentGroup = (.user, text, entry.shortTime, [])
+                currentGroup = (.user, entry.text ?? "", entry.shortTime, [])
 
-            } else if msg.contains("🤖 Джарвис:") {
+            case "assistant_message":
                 if let group = currentGroup {
                     messages.append(ChatMessage(sender: group.sender, text: group.text, time: group.time, skills: group.skills))
                 }
-                let text = msg.replacingOccurrences(of: "🤖 Джарвис:", with: "").trimmingCharacters(in: .whitespaces)
-                currentGroup = (.jarvis, text, entry.shortTime, [])
+                currentGroup = (.jarvis, entry.text ?? "", entry.shortTime, [])
 
-            } else if msg.contains("📝 STT:") {
-                // Fallback для записей без "🗣️ Ты:" (старый формат)
-                if let group = currentGroup {
-                    messages.append(ChatMessage(sender: group.sender, text: group.text, time: group.time, skills: group.skills))
-                }
-                var text = msg.replacingOccurrences(of: "📝 STT:", with: "").trimmingCharacters(in: .whitespaces)
-                // Убрать одинарные кавычки
-                if text.hasPrefix("'") { text.removeFirst() }
-                if let parenIdx = text.lastIndex(of: "(") {
-                    text = String(text[text.startIndex..<parenIdx]).trimmingCharacters(in: .whitespaces)
-                }
-                if text.hasSuffix("'") { text.removeLast() }
-                currentGroup = (.user, text, entry.shortTime, [])
-
-            } else if msg.contains("→") && (msg.contains("(✓)") || msg.contains("(✗)")) {
-                let isSuccess = msg.contains("(✓)")
-                // Извлечь имя навыка и сообщение
-                let skillName: String
-                let cleanMsg: String
-
-                if let arrowRange = msg.range(of: "→") {
-                    let afterArrow = msg[arrowRange.upperBound...].trimmingCharacters(in: .whitespaces)
-                    let parts = afterArrow.components(separatedBy: ":")
-                    if parts.count >= 2 {
-                        let namePart = parts[0]
-                            .replacingOccurrences(of: "(✓)", with: "")
-                            .replacingOccurrences(of: "(✗)", with: "")
-                            .trimmingCharacters(in: .whitespaces)
-                        skillName = namePart
-                        cleanMsg = parts.dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
-                    } else {
-                        skillName = "skill"
-                        cleanMsg = afterArrow
-                    }
-                } else {
-                    skillName = "skill"
-                    cleanMsg = msg
+            case "stt_result":
+                // В новых версиях всегда идет user_message, но stt_result может быть фолбэком
+                if currentGroup == nil {
+                    currentGroup = (.user, entry.text ?? "", entry.shortTime, [])
                 }
 
+            case "skill_result":
+                let skillName = entry.name ?? "skill"
+                let isSuccess = entry.success ?? true
+                let cleanMsg = entry.message ?? ""
                 let result = ChatMessage.SkillResult(name: skillName, success: isSuccess, message: cleanMsg)
+
                 if currentGroup != nil {
                     currentGroup?.skills.append(result)
                 } else {
@@ -79,6 +47,9 @@ enum LogParser {
                         skills: []
                     ))
                 }
+
+            default:
+                break
             }
         }
 
@@ -107,41 +78,19 @@ enum LogParser {
     /// Подсчитать статистику использования из записей лога.
     static func calculateStats(from entries: [LogEntry]) -> StatsData {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-02" // В логах даты 2026-06-02/03/04
-        
-        // Получим реальную текущую дату
         formatter.dateFormat = "yyyy-MM-dd"
         let todayStr = formatter.string(from: Date())
 
-        let sttEntries = entries.filter { $0.message.contains("📝 STT:") }
+        let sttEntries = entries.filter { $0.type == "stt_result" }
         let total = sttEntries.count
-        let today = sttEntries.filter { $0.timestamp.hasPrefix(todayStr) }.count
+        let today = sttEntries.filter { $0.ts.hasPrefix(todayStr) }.count
 
         var toolCounts: [String: Int] = [:]
-        
-        let toolCallEntries = entries.filter {
-            $0.message.contains("Tool calls") && $0.message.contains("[")
-        }
 
-        for entry in toolCallEntries {
-            let msg = entry.message
-            let pattern = "\\[([^\\]]+)\\]"
-            
-            guard let regex = try? NSRegularExpression(pattern: pattern),
-                  let match = regex.firstMatch(in: msg, range: NSRange(msg.startIndex..., in: msg)),
-                  let range = Range(match.range(at: 1), in: msg) else {
-                continue
-            }
-            
-            let toolsStr = String(msg[range])
-            let tools = toolsStr.components(separatedBy: ",")
-                .map { $0.replacingOccurrences(of: "'", with: "")
-                         .replacingOccurrences(of: "\"", with: "")
-                         .trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-            
-            for tool in tools {
-                toolCounts[tool, default: 0] += 1
+        let skillResultEntries = entries.filter { $0.type == "skill_result" }
+        for entry in skillResultEntries {
+            if let toolName = entry.name {
+                toolCounts[toolName, default: 0] += 1
             }
         }
 

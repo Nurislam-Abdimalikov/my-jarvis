@@ -31,3 +31,7 @@ def setup_logging(cfg: LoggingConfig) -> None:
         retention=cfg.retention,
         encoding="utf-8",
     )
+
+    from jarvis.core.event_logger import init_event_logger
+
+    init_event_logger()

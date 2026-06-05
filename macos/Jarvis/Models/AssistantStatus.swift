@@ -34,20 +34,14 @@ enum AssistantStatus: Equatable {
         self != .idle
     }
 
-    /// Определить статус по сообщению из последней строки лога.
-    static func from(message: String) -> AssistantStatus {
-        if message.contains("🟢 Слушаю фоном") {
-            return .listening
+    /// Определить статус по строке кода из JSON-события.
+    static func from(code: String) -> AssistantStatus {
+        switch code {
+        case "listening":  return .listening
+        case "recording":  return .recording
+        case "processing": return .processing
+        case "speaking":   return .speaking
+        default:           return .idle
         }
-        if message.contains("Слушаю команду") || message.contains("Записал команду") {
-            return .recording
-        }
-        if message.contains("STT:") || message.contains("Tool calls") || message.contains("→") {
-            return .processing
-        }
-        if message.contains("🤖 Джарвис:") {
-            return .speaking
-        }
-        return .idle
     }
 }
