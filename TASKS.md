@@ -9,7 +9,6 @@
 - [ ] `feat/imessage-telegram` — Send messages via iMessage and Telegram URL scheme.
 - [ ] `feat/calendar-write` — Create Calendar.app events (read already works).
 - [ ] `feat/tray-autostart` — Menu-bar tray icon + LaunchAgent auto-start on login.
-- [ ] `feat/ollama-local-llm` — Local LLM via Ollama for fully offline operation.
 - [ ] `feat/interrupt` — Barge-in / "Stop, Jarvis" to cancel playback.
 
 ---
@@ -19,7 +18,8 @@
 ---
 
 ## ✅ DONE
-- [x] `feature/theme-switcher` — 2026-06-02 — Добавление переключателя тем (Space Dark, Cyberpunk, Emerald) в интерфейс десктопного дашборда.
+- [x] `feat/ollama-local-llm` — 2026-06-06 — Интеграция Ollama для полностью автономной локальной работы с моделью Llama-3 8B.
+- [x] `feature/theme-switcher` — 2026-06-02 — Добавление переключателя тем (Space Dark, Cyberpunk, Emerald) in интерфейс десктопного дашборда.
 - [x] `chore/monorepo-consolidate` — 2026-06-02 — Consolidation of Electron + Next.js (Tailwind CSS v4) into `frontend/`, Python tests to `backend/` and repository cleanup.
 - [x] `feat/voice-loop` — 2026-05 — Core async voice loop: record → STT → LLM → TTS (`core/assistant.py`).
 - [x] `feat/wakeword` — 2026-05 — openWakeWord with 3 parallel models + sliding max-of-N window (`audio/wake_word.py`).

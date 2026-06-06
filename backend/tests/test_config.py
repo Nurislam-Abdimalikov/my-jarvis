@@ -3,7 +3,7 @@
 Покрывают:
 - что load_config() для основного config/config.yaml возвращает Config;
 - что brain.engine корректно парсится для всех поддерживаемых движков
-  (aihubmix | mistral | gemini).
+  (aihubmix | mistral | gemini | ollama).
 """
 
 from __future__ import annotations
@@ -24,9 +24,9 @@ def test_load_config_returns_config_instance() -> None:
     assert cfg.stt is not None
 
 
-@pytest.mark.parametrize("engine", ["aihubmix", "mistral", "gemini"])
+@pytest.mark.parametrize("engine", ["aihubmix", "mistral", "gemini", "ollama"])
 def test_load_config_parses_engine(tmp_path: Path, engine: str) -> None:
-    """Минимальный YAML с brain.engine=<engine> корректно парсится в cfg.brain.engine."""
+    """Минимальный YAML с brain.engine=<engine> корректно парсится в cfg.brain.engine (aihubmix | mistral | gemini | ollama)."""
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(
         f"brain:\n  engine: {engine}\n",
