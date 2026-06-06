@@ -89,6 +89,11 @@ brain:
     model: gemini-2.5-flash
     max_tokens: 1024
     temperature: 0.7
+  ollama:
+    model: llama3
+    max_tokens: 1024
+    temperature: 0.7
+    base_url: http://localhost:11434/v1
   max_history: 20
   system_prompt_path: config/system_prompt.txt
 

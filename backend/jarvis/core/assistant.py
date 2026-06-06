@@ -199,8 +199,19 @@ class Assistant:
                     "https://generativelanguage.googleapis.com/v1beta/openai/",
                 ),
             )
+        if b.engine == "ollama":
+            cfg = b.ollama or {}
+            # Ollama предоставляет OpenAI-совместимый эндпоинт.
+            # Ключ не имеет значения, но библиотека openai требует непустую строку.
+            return OpenAIBrain(
+                api_key=os.getenv("OLLAMA_API_KEY", "ollama"),
+                model=cfg.get("model", "llama3"),
+                max_tokens=cfg.get("max_tokens", 1024),
+                temperature=cfg.get("temperature", 0.7),
+                base_url=cfg.get("base_url", "http://localhost:11434/v1"),
+            )
         raise ValueError(
-            f"Неизвестный brain engine: {b.engine}. Доступны: aihubmix | mistral | gemini"
+            f"Неизвестный brain engine: {b.engine}. Доступны: aihubmix | mistral | gemini | ollama"
         )
 
     def _build_reactions(self) -> VoiceReactions:

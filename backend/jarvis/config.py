@@ -66,10 +66,11 @@ class TTSConfig(BaseModel):
 
 
 class BrainConfig(BaseModel):
-    engine: str = "aihubmix"  # aihubmix | mistral | gemini
+    engine: str = "aihubmix"  # aihubmix | mistral | gemini | ollama
     aihubmix: dict[str, Any] = Field(default_factory=dict)
     mistral: dict[str, Any] = Field(default_factory=dict)
     gemini: dict[str, Any] = Field(default_factory=dict)
+    ollama: dict[str, Any] = Field(default_factory=dict)
     max_history: int = 20
     system_prompt_path: str | None = None
 
