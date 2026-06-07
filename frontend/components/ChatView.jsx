@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getAssistantStatus } from '../utils/chatUtils'
 
 export default function ChatView({ messages, rawLines, loading }) {
@@ -18,17 +19,28 @@ export default function ChatView({ messages, rawLines, loading }) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-grow flex flex-col items-center justify-center text-muted text-sm gap-4 p-8">
+      <div className="flex-grow flex flex-col items-center justify-center text-muted text-sm gap-4 p-8 animate-fade-in">
         <div className="w-20 h-20 rounded-full flex items-center justify-center bg-elevated/40 border border-border shadow-inner relative">
           <div className="absolute inset-0 rounded-full border border-accent/20 animate-ping opacity-45" />
           <svg className="w-8 h-8 text-accent/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
           </svg>
         </div>
-        <div className="text-center flex flex-col gap-1 max-w-[280px]">
+        <div className="text-center flex flex-col gap-1 max-w-[280px] mb-2">
           <span className="text-primary font-medium text-[13px]">Чат пуст</span>
           <span className="text-secondary text-xs">Произнесите ключевое слово <span className="text-accent font-semibold font-mono">«Джарвис»</span> и дайте команду!</span>
         </div>
+
+        {/* Быстрые подсказки */}
+        <div className="flex flex-col items-center gap-2 mb-4">
+          <span className="text-[10px] text-muted uppercase tracking-wider font-semibold">Попробуйте сказать:</span>
+          <div className="flex flex-wrap gap-2 justify-center max-w-[340px]">
+            {['«Джарвис, какая погода?»', '«Джарвис, открой браузер»', '«Джарвис, сделай потише»', '«Джарвис, сделай скриншот»'].map((text, idx) => (
+              <SuggestionButton key={idx} text={text} />
+            ))}
+          </div>
+        </div>
+
         <StatusIndicator status={status} />
       </div>
     )
@@ -59,8 +71,8 @@ export default function ChatView({ messages, rawLines, loading }) {
             >
               {/* Avatar */}
               <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold font-sans shadow-md select-none
-                ${isUser 
-                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                ${isUser
+                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
                   : 'bg-gradient-to-br from-cyan-500/20 to-accent/30 border border-accent/40 text-accent'}`}
               >
                 {isUser ? 'U' : 'J'}
@@ -70,12 +82,12 @@ export default function ChatView({ messages, rawLines, loading }) {
               <div className="flex flex-col gap-1.5">
                 <div
                   className={`px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed shadow-sm
-                    ${isUser 
-                      ? 'bg-accent text-white rounded-tr-none' 
+                    ${isUser
+                      ? 'bg-accent text-white rounded-tr-none'
                       : 'bg-surface border border-border text-primary rounded-tl-none'}`}
                 >
                   <div>{msg.text}</div>
-                  
+
                   {/* Time */}
                   <div className={`text-[9px] mt-1.5 text-right opacity-60 font-mono`}>
                     {msg.ts}
@@ -86,11 +98,11 @@ export default function ChatView({ messages, rawLines, loading }) {
                 {msg.skills && msg.skills.length > 0 && (
                   <div className={`flex flex-wrap gap-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
                     {msg.skills.map((s, idx) => (
-                      <span 
-                        key={idx} 
+                      <span
+                        key={idx}
                         className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-mono
-                          ${s.success 
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                          ${s.success
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                             : 'bg-red-500/10 border-red-500/20 text-red-400'}`}
                         title={`Навык: ${s.name}`}
                       >
@@ -108,8 +120,8 @@ export default function ChatView({ messages, rawLines, loading }) {
 
       {/* Interactive Status Footer */}
       <div className="p-3 border-t border-border bg-surface/50 flex items-center justify-center shrink-0">
-        <StatusIndicator 
-          status={status} 
+        <StatusIndicator
+          status={status}
           onClick={async () => {
             if (status.code === 'speaking') {
               if (typeof window !== 'undefined' && window.jarvis) {
@@ -127,7 +139,7 @@ function StatusIndicator({ status, onClick }) {
   const { code, label } = status
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`flex items-center gap-3 px-4 py-2.5 rounded-full bg-elevated/60 border border-border/80 shadow-md transition-all duration-150 group
         ${code === 'speaking' ? 'cursor-pointer hover:border-red-500/40 hover:bg-red-500/5' : ''}`}
@@ -185,3 +197,26 @@ function StatusIndicator({ status, onClick }) {
   )
 }
 
+function SuggestionButton({ text }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    if (typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(text.replace(/[«»]/g, ''))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`text-[11px] px-2.5 py-1 rounded-full border transition-all duration-150 cursor-pointer select-none
+        ${copied
+          ? 'border-ok/30 bg-ok-dim/10 text-ok font-medium scale-95'
+          : 'border-border bg-elevated/40 text-secondary hover:text-primary hover:border-accent/30 hover:bg-accent-dim/10 hover:scale-105'}`}
+    >
+      {copied ? 'Скопировано! ✓' : text}
+    </button>
+  )
+}
