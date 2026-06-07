@@ -74,7 +74,7 @@ tts:
 #   mistral  — mistral-small-latest (быстрый, free tier). Ключ: MISTRAL_API_KEY
 #   gemini   — gemini-2.5-flash. Ключ: GOOGLE_API_KEY
 brain:
-  engine: mistral
+  engine: ollama
   aihubmix:
     model: gpt-5.5-free
     max_tokens: 1024
