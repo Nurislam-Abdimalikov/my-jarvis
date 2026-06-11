@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
+from ._macos import applescript_escape as _escape
 from ._macos import run_applescript
 from .base import Skill, SkillResult
-
-
-def _escape(s: str) -> str:
-    """Эскейп строки для AppleScript."""
-    return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 class CreateNoteSkill(Skill):

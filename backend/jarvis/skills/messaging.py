@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import urllib.parse
 
+from ._macos import applescript_escape as _escape
 from ._macos import run_applescript, run_shell
 from .base import Skill, SkillResult
-
-
-def _escape(s: str) -> str:
-    return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 class SendImessageSkill(Skill):
