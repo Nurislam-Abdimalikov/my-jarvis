@@ -97,14 +97,17 @@ class CloseBrowserTabSkill(Skill):
     }
 
     async def execute(self, query: str) -> SkillResult:  # type: ignore[override]
-        from ._macos import run_applescript
+        from ._macos import applescript_escape, run_applescript
 
-        q = query.strip().lower()
+        q = applescript_escape(query.strip().lower())
         if not q:
             return SkillResult(False, "Не указано что закрывать.")
 
         # AppleScript: ищем первую вкладку где URL или title содержит query.
         # tabIndex и winIndex 1-based в AppleScript.
+        # ВАЖНО: q экранирован (applescript_escape) — без этого кавычка в
+        # запросе позволяла выйти из строкового литерала и выполнить
+        # произвольный AppleScript / `do shell script`.
         script = f"""
         tell application "Google Chrome"
             set found to false

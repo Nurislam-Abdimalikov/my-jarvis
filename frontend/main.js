@@ -27,7 +27,33 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
     },
+  })
+
+  // Content-Security-Policy: запрещаем загрузку внешних скриптов/объектов.
+  // Логи и память пишутся LLM'ом — если в UI попадёт вредоносная разметка,
+  // CSP не даст ей подгрузить внешний код (XSS → RCE-цепочка).
+  // В dev Next.js требует 'unsafe-eval'/'unsafe-inline' и ws для HMR.
+  const csp = isDev
+    ? "default-src 'self' http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-eval' 'unsafe-inline' http://localhost:3000; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'"
+    : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'"
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    })
+  })
+
+  // Блокируем навигацию на внешние URL и открытие новых окон из renderer'а —
+  // частый вектор эскалации XSS до RCE в Electron.
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.webContents.on('will-navigate', (event, url) => {
+    const allowed = isDev ? url.startsWith('http://localhost:3000') : url.startsWith('file://')
+    if (!allowed) event.preventDefault()
   })
 
   if (isDev) {

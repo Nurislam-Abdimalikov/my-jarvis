@@ -104,12 +104,28 @@ class SkillRegistry:
         """Список tool-схем для LLM."""
         return [type(s).to_tool_schema() for s in self.all()]
 
-    async def execute(self, name: str, arguments: dict[str, Any]) -> SkillResult:
+    async def execute(
+        self, name: str, arguments: dict[str, Any], *, confirmed: bool = False
+    ) -> SkillResult:
         skill = self.get(name)
         if skill is None:
             return SkillResult(False, f"Неизвестный skill: {name}")
         if not skill.enabled:
             return SkillResult(False, f"Skill {name} отключён")
+        # Гейт подтверждения: чувствительные/необратимые скиллы
+        # (requires_confirmation=True) не выполняются, пока пользователь явно
+        # не подтвердит действие. Возвращаем неуспех с флагом needs_confirmation,
+        # который оркестратор (assistant) использует, чтобы переспросить голосом.
+        if skill.requires_confirmation and not confirmed:
+            return SkillResult(
+                False,
+                "Это действие требует подтверждения. Сказать «да», чтобы выполнить.",
+                {
+                    "needs_confirmation": True,
+                    "skill": name,
+                    "arguments": arguments,
+                },
+            )
         try:
             return await skill.execute(**arguments)
         except TypeError as e:

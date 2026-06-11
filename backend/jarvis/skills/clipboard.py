@@ -33,8 +33,13 @@ class CopyToClipboardSkill(Skill):
 
 class ReadClipboardSkill(Skill):
     name = "read_clipboard"
-    description = "Прочитать текст из буфера обмена macOS."
+    description = (
+        "Прочитать текст из буфера обмена macOS. Содержимое буфера будет "
+        "передано LLM-провайдеру, поэтому действие требует подтверждения."
+    )
     parameters = {"type": "object", "properties": {}, "required": []}
+    # Буфер обмена может содержать пароли/токены — не читаем без согласия.
+    requires_confirmation = True
 
     async def execute(self) -> SkillResult:  # type: ignore[override]
         code, out, err = await run_shell("pbpaste")

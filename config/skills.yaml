@@ -49,7 +49,9 @@ skills:
   # --- notes / clipboard ---
   create_note:         { enabled: true }
   copy_to_clipboard:   { enabled: true }
-  read_clipboard:      { enabled: true }
+  # read_clipboard отправляет содержимое буфера (там могут быть пароли/токены)
+  # в стороннюю LLM — поэтому требует голосового подтверждения.
+  read_clipboard:      { enabled: true, requires_confirmation: true }
 
   # --- timer ---
   set_timer:           { enabled: true }
@@ -68,8 +70,11 @@ skills:
   # provider: openai | openrouter | nvidia (авто = первый, у которого есть ключ в .env)
   # model: любая vision-модель провайдера (gpt-4o-mini, llama-3.2-90b-vision и т.д.)
   # api_key_env: имя env-переменной с ключом
+  # analyze_screen отправляет скриншот ВСЕГО экрана в стороннюю vision-модель
+  # (могут утечь пароли/секреты с экрана) — требует голосового подтверждения.
   analyze_screen:
     enabled: true
+    requires_confirmation: true
     provider: aihubmix         # openai | aihubmix | openrouter | nvidia
     model: gpt-5.5-free        # vision-модель провайдера
     # api_key_env: AIHUBMIX_API_KEY  (берётся из preset для provider)

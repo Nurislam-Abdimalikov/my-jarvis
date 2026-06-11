@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ._macos import run_applescript, run_shell
+from ._macos import applescript_escape, run_applescript, run_shell
 from .base import Skill, SkillResult
 
 # Алиасы — чтобы LLM не парился над точным именем приложения.
@@ -71,7 +71,9 @@ class CloseAppSkill(Skill):
 
     async def execute(self, app_name: str) -> SkillResult:  # type: ignore[override]
         app = _resolve_app(app_name)
-        code, _, err = await run_applescript(f'tell application "{app}" to quit')
+        code, _, err = await run_applescript(
+            f'tell application "{applescript_escape(app)}" to quit'
+        )
         if code != 0:
             return SkillResult(False, f"Не смог закрыть {app}: {err}")
         return SkillResult(True, f"Закрыл {app}")
@@ -88,7 +90,9 @@ class SwitchAppSkill(Skill):
 
     async def execute(self, app_name: str) -> SkillResult:  # type: ignore[override]
         app = _resolve_app(app_name)
-        code, _, err = await run_applescript(f'tell application "{app}" to activate')
+        code, _, err = await run_applescript(
+            f'tell application "{applescript_escape(app)}" to activate'
+        )
         if code != 0:
             return SkillResult(False, f"Не смог переключиться на {app}: {err}")
         return SkillResult(True, f"Активировал {app}")

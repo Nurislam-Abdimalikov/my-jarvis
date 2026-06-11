@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import datetime
 
+from ._macos import applescript_escape as _escape
 from ._macos import run_applescript
 from .base import Skill, SkillResult
-
-
-def _escape(s: str) -> str:
-    return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 class GetCalendarEventsBase(Skill):

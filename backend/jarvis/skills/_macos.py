@@ -43,3 +43,13 @@ async def run_shell(*args: str, timeout: float = 10.0) -> tuple[int, str, str]:
         out.decode(errors="ignore").strip(),
         err.decode(errors="ignore").strip(),
     )
+
+
+def applescript_escape(s: str) -> str:
+    """Экранировать строку для безопасной подстановки в AppleScript-литерал.
+
+    Обязательно для любых значений, пришедших от пользователя или LLM:
+    неэкранированная кавычка ломает строку и позволяет выполнить
+    произвольный AppleScript (включая `do shell script`).
+    """
+    return s.replace("\\", "\\\\").replace('"', '\\"')
