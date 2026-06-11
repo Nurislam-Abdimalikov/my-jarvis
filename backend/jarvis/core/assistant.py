@@ -15,6 +15,7 @@ from jarvis.brain.base import BaseLLM, ToolCall
 from jarvis.brain.openai_llm import OpenAIBrain
 from jarvis.brain.prompts import get_system_prompt
 from jarvis.config import PROJECT_ROOT, Config
+from jarvis.core.confirmation import is_affirmative, is_negative
 from jarvis.core.state import ConversationState
 from jarvis.skills.registry import SkillRegistry, build_default_registry
 from jarvis.stt.base import BaseSTT
@@ -137,6 +138,10 @@ class Assistant:
         )
 
         self.system_prompt = get_system_prompt(self.config.language)
+
+        # Отложенное действие, ожидающее голосового подтверждения пользователя.
+        # Формат: {"skill": str, "arguments": dict} | None.
+        self._pending_confirmation: dict | None = None
 
     # ---------- factory методы ---------- #
 
@@ -375,6 +380,25 @@ class Assistant:
         - Если LLM вернул tool_calls — выполняем их, кладём результаты как role=tool, повторяем.
         - Если вернул просто текст — это финальный ответ.
         """
+        # --- Гейт подтверждения: есть отложенное действие с прошлого turn'а ---
+        if self._pending_confirmation is not None:
+            pending = self._pending_confirmation
+            self._pending_confirmation = None
+            if is_affirmative(user_text):
+                logger.info("✅ Пользователь подтвердил: {}", pending["skill"])
+                result = await self.skills.execute(
+                    pending["skill"], pending["arguments"], confirmed=True
+                )
+                if result.success:
+                    return result.message or "Готово, сэр."
+                return f"Не получилось: {result.message}"
+            if is_negative(user_text):
+                logger.info("🚫 Пользователь отменил: {}", pending["skill"])
+                return "Хорошо, отменил."
+            # Фраза не похожа ни на «да», ни на «нет» — сбрасываем ожидание
+            # и обрабатываем её как обычную команду ниже.
+            logger.info("⏭️ Подтверждение не получено, сбрасываю pending {}", pending["skill"])
+
         # Базовые сообщения берём из state (включая только что добавленный user_text)
         messages: list[dict] = list(self.state.to_llm_messages())
         tools = self.skills.to_tools_schema() or None
@@ -412,6 +436,14 @@ class Assistant:
             # 2) Выполнить каждый tool и добавить результат
             for tc in response.tool_calls:
                 result = await self.skills.execute(tc.name, tc.arguments)
+                # Скилл требует подтверждения — запоминаем отложенное действие.
+                # LLM получит сообщение «требует подтверждения» и переспросит,
+                # а «да» на следующем turn'е выполнит действие напрямую.
+                if result.data and result.data.get("needs_confirmation"):
+                    self._pending_confirmation = {
+                        "skill": result.data["skill"],
+                        "arguments": result.data["arguments"],
+                    }
                 tool_payload = {
                     "success": result.success,
                     "message": result.message,
